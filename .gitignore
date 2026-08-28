@@ -1,0 +1,16 @@
+my-materials/
+# user-owned workflow files (personal data — never publish)
+candidate_profile.json
+application_rules.md
+resume_routing.md
+answer_bank.md
+experience_bank.md
+# job application tracking data (private — never publish)
+dashboard/*.csv
+投递规则与批次总表.md
+投递规则与批次总表.xlsx
+# playwright browser automation artifacts
+.playwright-mcp/
+*.png
+.DS_Store
+Thumbs.db
