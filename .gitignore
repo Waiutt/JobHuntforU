@@ -9,6 +9,11 @@ experience_bank.md
 dashboard/*.csv
 投递规则与批次总表.md
 投递规则与批次总表.xlsx
+投递填写记录.md
+*投递记录*.md
+*投递记录*.csv
+*填写记录*.md
+*记录*.xlsx
 # playwright browser automation artifacts
 .playwright-mcp/
 *.png

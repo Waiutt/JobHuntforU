@@ -21,6 +21,9 @@ templates/
   answer_bank.template.md           Reusable truthful answers for common application questions
   experience_bank.template.md       Which internships/projects to feature per role family and JD
   dashboard-template/               Empty CSV dashboard + field reference (see its README.md)
+scripts/
+  resume-scorer.py                  Resume×Job matching scorer (three-role: HR / team member / team lead)
+  resume-scoring-gate.md            Scoring gate strategy — loop-terminating quality gate (>=95 to output)
 dashboard/                       A ready-to-run local dashboard (same CSV schema as the template)
   server.js                     Zero-dependency static file server (Node.js, no npm install)
   dashboard.html                 The dashboard UI itself
@@ -125,6 +128,9 @@ templates/
   answer_bank.template.md           常见申请问题的可复用真实回答
   experience_bank.template.md       针对不同岗位族/JD该用哪几段实习或项目经历
   dashboard-template/               空白CSV看板 + 字段说明(见其中的 README.md)
+scripts/
+  resume-scorer.py                  简历×岗位 匹配度评分器(三角色:HR / 部门成员 / 部门负责人)
+  resume-scoring-gate.md            评分门禁策略文档——循环终止质量门禁(≥95 分才允许输出)
 dashboard/                       开箱即用的本地进度看板(CSV结构与模板一致)
   server.js                     零依赖静态文件服务器(仅需 Node.js,无需 npm install)
   dashboard.html                 看板界面本体
