@@ -229,6 +229,49 @@
   .chip-warn { color: var(--status-warning); background: color-mix(in srgb, var(--status-warning) 22%, transparent); }
   .quota-more { display: flex; justify-content: center; padding: 12px; }
 
+  /* ============================================================
+     已投递（总台账）：按「实际公司」合并的展开式布局
+     ============================================================ */
+  .list-meta { font-size: 12px; color: var(--text-muted); margin: 2px 0 10px; }
+  .company-group { cursor: pointer; }
+  .count-badge {
+    display: inline-block; margin-left: 6px; padding: 1px 7px;
+    font-size: 11px; font-weight: 600; border-radius: 999px;
+    color: var(--series-1); background: color-mix(in srgb, var(--series-1) 14%, transparent);
+    vertical-align: 1px;
+  }
+  .chev { font-size: 11px; color: var(--series-1); }
+  .positions {
+    display: none;
+    margin-top: 10px; padding-top: 8px;
+    border-top: 1px dashed var(--gridline);
+  }
+  .company-group.open .positions { display: block; }
+  .position-row {
+    border-left: 2px solid var(--gridline);
+    padding: 6px 0 6px 12px; margin-bottom: 4px;
+    cursor: pointer;
+  }
+  .position-row:hover { border-left-color: var(--series-1); background: color-mix(in srgb, var(--series-1) 4%, transparent); }
+  .position-row.open { border-left-color: var(--series-1); }
+  .pos-head { display: flex; align-items: baseline; justify-content: space-between; gap: 12px; flex-wrap: wrap; }
+  .pos-title { font-size: 13px; font-weight: 600; }
+  .pos-meta { font-size: 11px; color: var(--text-muted); white-space: nowrap; }
+  .pos-detail {
+    display: none;
+    margin-top: 8px; padding-top: 8px;
+    border-top: 1px solid var(--gridline);
+    font-size: 13px; color: var(--text-secondary); line-height: 1.6;
+  }
+  .pos-detail dt {
+    color: var(--text-muted); font-size: 11px; text-transform: uppercase;
+    letter-spacing: .03em; margin-top: 8px;
+  }
+  .pos-detail dt:first-child { margin-top: 0; }
+  .pos-detail dd { margin: 2px 0 0; }
+  .pos-detail a { color: var(--series-1); }
+  .list-more { display: flex; justify-content: center; padding: 14px 0 6px; }
+
   /* 已结束视图的两个控件此前也无样式 */
   .end-trigger {
     font: inherit; font-size: 12px; color: var(--series-1);
@@ -742,71 +785,194 @@
       cats.forEach(c => { const o = document.createElement('option'); o.value = c; o.textContent = c; catSel.appendChild(o); });
     }
 
+    // ---------- 公司名归一：把同一家的不同写法并成一个「实际公司」 ----------
+    // 实测 303 种写法 → 269 家（33 组是变体，如
+    // 联影医疗 / 上海联影医疗科技 / 上海联影医疗科技股份有限公司(联影集团)）
+    // 前缀表取自 company_aliases.json 的 strip_platform_prefixes；
+    // ⚠️ 只做**行首精确剥离**，绝不做模糊包含匹配
+    //   （项目 _rules 记录：曾因前缀模糊匹配把「中国电子云」判成「中国电信」而误判已投）
+    const PLATFORM_PREFIXES = [
+      '牛客网-', '牛客网 -', '前程无忧-', '前程无忧 -', '应届生求职网-',
+      '智联招聘-', '51job-', '51job -', '实习僧-', 'BOSS直聘-',
+    ];
+    function stripPlatformPrefix(s) {
+      let out = String(s || '').trim();
+      for (let i = 0; i < 4; i++) {
+        const before = out;
+        PLATFORM_PREFIXES.forEach(p => { if (out.startsWith(p)) out = out.slice(p.length).trim(); });
+        if (out === before) break;
+      }
+      return out;
+    }
+    const CITY_RE = /^(上海|北京|广州|深圳|杭州|南京|成都|武汉|苏州|天津|重庆|西安|长沙|青岛|厦门|福州|合肥|郑州|济南|宁波|无锡|东莞|佛山|珠海|中山|惠州|梅州|海口|三亚)/;
+    const SUFFIX_RES = [
+      /股份有限公司$/, /有限责任公司$/, /有限公司$/, /集团有限公司$/, /集团$/,
+      /网络科技有限公司$/, /信息科技有限公司$/, /科技有限公司$/, /技术有限公司$/,
+      /数字技术股份有限公司$/,
+      // ⚠️ 只剥「科技」，不剥「信息科技」/「网络科技」/「数字技术」：
+      //   实测 上海合合信息科技股份有限公司 应归到「合合信息」（不是「合合」），
+      //   青木数字技术股份有限公司 应归到「青木数字技术」。剥多了会把品牌名切坏。
+      /科技$/,
+      /（中国）$/, /\(中国\)$/, /公司$/,
+    ];
+    function companyCore(name) {
+      let s = stripPlatformPrefix(name).replace(/\s+/g, '');
+      s = s.replace(/[（(][^）)]*[）)]$/, '');
+      for (let i = 0; i < 3; i++) {
+        let s2 = s.replace(CITY_RE, '');
+        SUFFIX_RES.forEach(rx => { s2 = s2.replace(rx, ''); });
+        if (s2 === s) break;
+        s = s2;
+      }
+      return s || stripPlatformPrefix(name);
+    }
+    // 展示名取「最短且不带括号补充」的那个写法，读起来最清楚
+    function displayName(variants) {
+      const arr = [...variants].filter(Boolean);
+      arr.sort((a, b) => {
+        const pa = /[（(]/.test(a) ? 1 : 0, pb = /[（(]/.test(b) ? 1 : 0;
+        if (pa !== pb) return pa - pb;
+        return a.length - b.length;
+      });
+      return arr[0] || '';
+    }
+
+    let shownGroups = 40;   // 增量渲染：先出 40 家，按需加载
+
     function draw() {
       let filtered = rows.slice();
       if (catSel.value) filtered = filtered.filter(r => category(r) === catSel.value);
-      if (search.value.trim()) {
-        const q = search.value.trim().toLowerCase();
-        filtered = filtered.filter(r => (r.company||'').toLowerCase().includes(q));
+      const q = search.value.trim().toLowerCase();
+      if (q) {
+        filtered = filtered.filter(r =>
+          (r.company || '').toLowerCase().includes(q) ||
+          (r.job_title || '').toLowerCase().includes(q));
       }
-      filtered.sort((a,b) => (submittedDateFor(b)||'').localeCompare(submittedDateFor(a)||''));
+
+      // 按「实际公司」分组
+      const groups = new Map();
+      filtered.forEach(r => {
+        const core = companyCore(r.company);
+        if (!groups.has(core)) groups.set(core, { core, variants: new Set(), rows: [] });
+        const g = groups.get(core);
+        g.variants.add(stripPlatformPrefix((r.company || '').trim()));
+        g.rows.push(r);
+      });
+      const glist = [...groups.values()];
+      glist.forEach(g => {
+        g.name = displayName(g.variants);
+        g.rows.sort((a, b) => (submittedDateFor(b) || '').localeCompare(submittedDateFor(a) || ''));
+        g.latest = submittedDateFor(g.rows[0]) || '';
+        g.cats = [...new Set(g.rows.map(category))];
+      });
+      glist.sort((a, b) => (b.latest || '').localeCompare(a.latest || ''));
+
+      const totalGroups = glist.length;
+      const totalJobs = filtered.length;
+      const page = q ? glist : glist.slice(0, shownGroups);
 
       listEl.innerHTML = '';
-      if (!filtered.length) { listEl.innerHTML = '<div class="empty">没有匹配的记录</div>'; return; }
+      if (!totalJobs) { listEl.innerHTML = '<div class="empty">没有匹配的记录</div>'; return; }
 
-      filtered.forEach(r => {
-        const cat = category(r);
-        const mode = submissionMode(r.company);
-        const stage = currentStage(r);
-        const fu = followUpsFor(r.company);
-        const timeline = fu.map(f => `<div class="timeline-item">${esc(f.date)} — ${esc(f.event_type)}：${esc(f.status)} ${esc(f.next_action)}</div>`).join('') || '<div class="timeline-item">暂无跟进记录</div>';
-        const jd = jdFor(r.company);
+      const bar = document.createElement('div');
+      bar.className = 'list-meta';
+      bar.textContent = q
+        ? ('匹配 ' + totalGroups + ' 家公司 · ' + totalJobs + ' 个岗位')
+        : ('共 ' + totalGroups + ' 家公司 · ' + totalJobs + ' 个岗位'
+           + (totalGroups > page.length ? '（已显示 ' + page.length + ' 家）' : ''));
+      listEl.appendChild(bar);
 
-        const html = `
+      page.forEach(g => {
+        const group = document.createElement('div');
+        group.className = 'card company-group';
+        const catChips = g.cats.map(c => `<span class="chip ${catChipClass(c)}">${esc(c)}</span>`).join('');
+        const mode = submissionMode(g.rows[0].company);
+        group.innerHTML = `
           <div class="card-top">
             <div>
-              <div class="card-title">${esc(r.company)} · ${esc(r.job_title)}</div>
-              <div class="card-sub">${esc(stage)}</div>
-              <div class="tags">
-                <span class="chip ${catChipClass(cat)}">${esc(cat)}</span>
-                <span class="chip ${mode.cls}">${esc(mode.label)}</span>
+              <div class="card-title">${esc(g.name)}
+                <span class="count-badge">${g.rows.length} 个岗位</span>
               </div>
+              <div class="card-sub">${esc(g.variants.size > 1 ? ('合并 ' + g.variants.size + ' 种记录写法') : currentStage(g.rows[0]))}</div>
+              <div class="tags">${catChips}<span class="chip ${mode.cls}">${esc(mode.label)}</span></div>
             </div>
-            <div class="card-right">投递于 ${esc(submittedDateFor(r))}</div>
+            <div class="card-right">最新 ${esc(g.latest)}<br><span class="chev">▸ 展开</span></div>
           </div>
-          <div class="detail">
-            <dt>职位/城市</dt><dd>${esc(r.job_title)} · ${esc(r.location)}</dd>
-            <dt>岗位描述（JD）</dt><dd>${jd ? escMultiline(jd) : '暂未记录，可在 application_log.csv 的 job_description 列补充'}</dd>
-            <dt>备注</dt><dd>${esc(r.notes)}</dd>
-            <dt>next_action</dt><dd>${esc(r.next_action)}</dd>
-            ${r.job_url ? `<dt>链接</dt><dd><a href="${esc(r.job_url)}" target="_blank" rel="noopener">${esc(r.job_url)}</a></dd>` : ''}
-            <dt>跟进时间线</dt><dd>${timeline}</dd>
-            <div class="end-progress">
-              <button class="btn end-trigger">进度已结束</button>
-              <div class="end-choices hidden">
-                <button class="btn btn-good end-choice" data-status="Offer">已通过</button>
-                <button class="btn btn-bad end-choice" data-status="Rejected">已被挂</button>
-              </div>
+          <div class="positions"></div>`;
+
+        const posWrap = group.querySelector('.positions');
+        g.rows.forEach(r => {
+          const cat = category(r);
+          const stage = currentStage(r);
+          const fu = followUpsFor(r.company);
+          const timeline = fu.map(f => `<div class="timeline-item">${esc(f.date)} — ${esc(f.event_type)}：${esc(f.status)} ${esc(f.next_action)}</div>`).join('') || '<div class="timeline-item">暂无跟进记录</div>';
+          const jd = jdFor(r.company);
+
+          const row = document.createElement('div');
+          row.className = 'position-row';
+          row.innerHTML = `
+            <div class="pos-head">
+              <div class="pos-title">${esc(r.job_title)}</div>
+              <div class="pos-meta">${esc(submittedDateFor(r))} · ${esc(stage)}</div>
             </div>
-          </div>`;
-        const card = cardEl(html);
-        const endTrigger = card.querySelector('.end-trigger');
-        const endChoices = card.querySelector('.end-choices');
-        endTrigger.addEventListener('click', (e) => {
-          e.stopPropagation();
-          endChoices.classList.toggle('hidden');
-        });
-        card.querySelectorAll('.end-choice').forEach(choiceBtn => {
-          choiceBtn.addEventListener('click', (e) => {
-            e.stopPropagation();
-            markEnded(r, choiceBtn.dataset.status, choiceBtn);
+            <div class="pos-detail">
+              <dt>职位/城市</dt><dd>${esc(r.job_title)} · ${esc(r.location)}</dd>
+              <dt>岗位描述（JD）</dt><dd>${jd ? escMultiline(jd) : '暂未记录，可在 application_log.csv 的 job_description 列补充'}</dd>
+              <dt>备注</dt><dd>${esc(r.notes)}</dd>
+              <dt>next_action</dt><dd>${esc(r.next_action)}</dd>
+              ${r.job_url ? `<dt>链接</dt><dd><a href="${esc(r.job_url)}" target="_blank" rel="noopener">${esc(r.job_url)}</a></dd>` : ''}
+              <dt>跟进时间线</dt><dd>${timeline}</dd>
+              <div class="end-progress">
+                <button class="btn end-trigger">进度已结束</button>
+                <div class="end-choices hidden">
+                  <button class="btn btn-good end-choice" data-status="Offer">已通过</button>
+                  <button class="btn btn-bad end-choice" data-status="Rejected">已被挂</button>
+                </div>
+              </div>
+            </div>`;
+
+          const head = row.querySelector('.pos-head');
+          const detail = row.querySelector('.pos-detail');
+          head.addEventListener('click', (e) => {
+            e.stopPropagation();               // 不要触发公司卡片的整体折叠
+            row.classList.toggle('open');
+            detail.style.display = row.classList.contains('open') ? 'block' : 'none';
           });
+          const endTrigger = row.querySelector('.end-trigger');
+          const endChoices = row.querySelector('.end-choices');
+          endTrigger.addEventListener('click', (e) => { e.stopPropagation(); endChoices.classList.toggle('hidden'); });
+          row.querySelectorAll('.end-choice').forEach(choiceBtn => {
+            choiceBtn.addEventListener('click', (e) => {
+              e.stopPropagation();
+              markEnded(r, choiceBtn.dataset.status, choiceBtn);
+            });
+          });
+          posWrap.appendChild(row);
         });
-        listEl.appendChild(card);
+
+        // 点公司头部（或右侧）展开该公司的岗位列表
+        group.querySelector('.card-top').addEventListener('click', (e) => {
+          if (e.target.tagName === 'A') return;
+          group.classList.toggle('open');
+          const chev = group.querySelector('.chev');
+          if (chev) chev.textContent = group.classList.contains('open') ? '▾ 收起' : '▸ 展开';
+        });
+        listEl.appendChild(group);
       });
+
+      if (!q && totalGroups > page.length) {
+        const more = document.createElement('div');
+        more.className = 'list-more';
+        more.innerHTML = `<button class="btn" id="applied-more">显示更多公司（还有 ${totalGroups - page.length} 家）</button>`;
+        more.querySelector('#applied-more').addEventListener('click', () => {
+          shownGroups += 40;
+          draw();
+        });
+        listEl.appendChild(more);
+      }
     }
-    catSel.onchange = draw;
-    search.oninput = draw;
+    catSel.onchange = () => { shownGroups = 40; draw(); };
+    search.oninput = () => { shownGroups = 40; draw(); };
     draw();
   }
 
