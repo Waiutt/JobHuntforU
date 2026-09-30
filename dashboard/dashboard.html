@@ -164,6 +164,92 @@
   .cal-selected-job { font-size: 12px; color: var(--series-1); margin-top: 2px; }
   .form-actions { display: flex; gap: 8px; justify-content: flex-end; }
   .cal-form-error { color: var(--status-serious); font-size: 12px; margin: 0; }
+
+  /* ============================================================
+     站点额度表
+     此前 renderQuotas() 用到的 .quota-panel / .quota-table / .q-company /
+     .q-num / .q-note / .chip-bad / .chip-warn 均**未定义**，表格一直以
+     浏览器默认样式渲染：无表头样式、无列宽约束，220 字「依据」原文在第 4 列
+     无限换行 → 平均行高 72px、94 行 = 7058px，把首页撑到 7600px。
+     以下为补齐版。
+     ============================================================ */
+  .quota-panel { margin-top: 0; }
+  .table-wrap {
+    overflow-x: auto;
+    border: 1px solid var(--border);
+    border-radius: 12px;
+    background: var(--surface-1);
+  }
+  .quota-table {
+    width: 100%;
+    min-width: 620px;
+    border-collapse: collapse;
+    font-size: 13px;
+  }
+  .quota-table th {
+    text-align: left;
+    font-size: 11px;
+    font-weight: 600;
+    letter-spacing: .04em;
+    text-transform: uppercase;
+    color: var(--text-muted);
+    padding: 10px 14px;
+    border-bottom: 1px solid var(--border);
+    white-space: nowrap;
+  }
+  .quota-table td {
+    padding: 10px 14px;
+    border-bottom: 1px solid var(--gridline);
+    vertical-align: top;
+  }
+  .quota-table tbody tr:last-child td { border-bottom: none; }
+  .quota-table tbody tr:hover { background: color-mix(in srgb, var(--series-1) 5%, transparent); }
+  .q-company { font-weight: 600; width: 24%; line-height: 1.45; }
+  .q-num {
+    white-space: nowrap;
+    width: 92px;
+    font-variant-numeric: tabular-nums;
+    color: var(--text-secondary);
+  }
+  .q-note {
+    color: var(--text-muted);
+    font-size: 12px;
+    line-height: 1.55;
+    cursor: zoom-in;
+  }
+  .q-note.clamp {
+    display: -webkit-box;
+    -webkit-line-clamp: 1;
+    -webkit-box-orient: vertical;
+    overflow: hidden;
+  }
+  /* 展开态：占满整行读起来更舒服 */
+  .q-note.open { display: block; cursor: zoom-out; }
+  .chip-bad { color: var(--status-critical); background: color-mix(in srgb, var(--status-critical) 14%, transparent); }
+  .chip-warn { color: var(--status-warning); background: color-mix(in srgb, var(--status-warning) 22%, transparent); }
+  .quota-more { display: flex; justify-content: center; padding: 12px; }
+
+  /* 已结束视图的两个控件此前也无样式 */
+  .end-trigger {
+    font: inherit; font-size: 12px; color: var(--series-1);
+    background: none; border: none; padding: 0; cursor: pointer;
+  }
+  .end-choice { font-size: 12px; padding: 4px 10px; border-radius: 8px; }
+
+  /* ---------- 响应式（此前只有深色模式媒体查询，无断点） ---------- */
+  @media (max-width: 720px) {
+    header { padding: 12px 14px; }
+    main { padding: 16px 14px 48px; }
+    .tiles { grid-template-columns: 1fr; gap: 10px; }
+    .tile { padding: 16px 18px; }
+    .tile .value { font-size: 32px; }
+    .card { padding: 12px 13px; }
+    .card-top { flex-direction: column; gap: 4px; }
+    .card-right { text-align: left; white-space: normal; }
+    .view-header h2 { font-size: 17px; }
+    .calendar-day { flex: 1 1 112px; min-width: 112px; }
+    .calendar-section { padding: 14px; }
+  }
 </style>
 </head>
 <body>
@@ -190,21 +276,34 @@
     <div id="home-view">
       <div class="tiles">
         <button class="tile" data-view="applied">
-          <div class="label">已投递</div>
+          <div class="label">已投递（台账）</div>
           <div class="value" id="tile-applied">–</div>
-          <div class="sub">进行中的投递</div>
+          <div class="sub" id="tile-applied-sub">application_log.csv 的 Submitted</div>
         </button>
+        <div class="tile">
+          <div class="label">台账总记录</div>
+          <div class="value" id="tile-ledger-total">–</div>
+          <div class="sub" id="tile-ledger-sub">含拒/终止/测评/面试</div>
+        </div>
+        <div class="tile">
+          <div class="label">今日投递</div>
+          <div class="value" id="tile-today">–</div>
+          <div class="sub" id="tile-today-sub">按 attempt_date 统计</div>
+        </div>
         <button class="tile" data-view="pending">
           <div class="label">未投递</div>
           <div class="value" id="tile-pending">–</div>
           <div class="sub">目标池里还没投的公司</div>
         </button>
         <button class="tile" data-view="ended">
-          <div class="label">已结束</div>
+          <div class="label">已结束（池内）</div>
           <div class="value" id="tile-ended">–</div>
           <div class="sub">拿到 offer 或已被拒</div>
         </button>
       </div>
+
+      <div class="section-title">站点额度 · site_quotas.json <span class="meta" id="quota-summary"></span></div>
+      <div id="quota-panel" class="quota-panel"></div>
 
       <div class="section-title">未来 7 天日程</div>
       <div class="calendar-section">
@@ -337,12 +436,18 @@
   }
 
   // ---------- data ----------
-  const data = { jobPool: [], appLog: [], followUp: [] };
+  const data = { jobPool: [], appLog: [], followUp: [], quotas: [] };
 
   async function readCSVFile(name) {
     const res = await fetch('./' + name + '?t=' + Date.now(), { cache: 'no-store' });
     if (!res.ok) throw new Error(name + ' 读取失败 (HTTP ' + res.status + ')');
     return parseCSV(await res.text());
+  }
+
+  async function readJSONFile(name) {
+    const res = await fetch('./' + name + '?t=' + Date.now(), { cache: 'no-store' });
+    if (!res.ok) throw new Error(name + ' 读取失败 (HTTP ' + res.status + ')');
+    return JSON.parse(await res.text());
   }
 
   async function loadAll() {
@@ -356,6 +461,9 @@
       data.followUp = await readCSVFile('follow_up.csv').catch(() => []);
       // Row position in follow_up.csv (excluding header) — needed to edit/delete a calendar event.
       data.followUp.forEach((r, i) => { r.__rowIndex = i; });
+      // site_quotas.json 是站点投递额度的唯一真相源（used/limit/status），
+      // 早期看板没读它 —— 补上，否则"某站还能不能投"这个最关键的信息看不到。
+      data.quotas = (await readJSONFile('site_quotas.json').catch(() => ({}))).quotas || [];
     } catch (e) {
       document.getElementById('connect-title').textContent = '读取数据失败';
       document.getElementById('connect-desc').textContent = '';
@@ -372,6 +480,7 @@
     renderPending();
     renderEnded();
     renderCalendar();
+    renderQuotas();
   }
 
   // ---------- categorization helpers ----------
@@ -447,13 +556,85 @@
   }
 
   // ---------- home tiles ----------
+  // 注意：job_pool.csv 只是"职位池"（287 行 / 163 Submitted），而真实投递记录在
+  // application_log.csv（337 行 / 278 Submitted）。早期看板只统计池子，会少报
+  // 一百多笔，所以这里以台账为准，池内数字退到副标题里做参考。
+  function ledgerRows() { return data.appLog || []; }
+  function ledgerSubmitted() { return ledgerRows().filter(r => (r.status || '').trim() === 'Submitted'); }
+  function todayStr() {
+    const d = new Date();
+    const p = n => String(n).padStart(2, '0');
+    return d.getFullYear() + '-' + p(d.getMonth() + 1) + '-' + p(d.getDate());
+  }
+
   function renderHome() {
     const applied = data.jobPool.filter(r => r.status === 'Submitted');
     const ended = data.jobPool.filter(r => r.status === 'Offer' || r.status === 'Rejected');
     const pending = data.jobPool.filter(r => r.status === 'Pending' || r.status === 'Needs user');
-    document.getElementById('tile-applied').textContent = applied.length;
+    const ls = ledgerSubmitted();
+
+    document.getElementById('tile-applied').textContent = ls.length;
+    const subEl = document.getElementById('tile-applied-sub');
+    if (subEl) subEl.textContent = '池内 Submitted：' + applied.length + ' 笔';
+
+    const totalEl = document.getElementById('tile-ledger-total');
+    if (totalEl) totalEl.textContent = ledgerRows().length;
+
+    const today = ledgerRows().filter(r => (r.attempt_date || '').trim() === todayStr());
+    const todayEl = document.getElementById('tile-today');
+    if (todayEl) todayEl.textContent = today.filter(r => (r.status || '').trim() === 'Submitted').length;
+    const todaySub = document.getElementById('tile-today-sub');
+    if (todaySub) todaySub.textContent = todayStr() + ' · 共 ' + today.length + ' 次尝试';
+
     document.getElementById('tile-pending').textContent = pending.length;
     document.getElementById('tile-ended').textContent = ended.length;
+  }
+
+  // ---------- quota panel ----------
+  const QUOTA_STATUS_LABEL = {
+    quota_exhausted: '已封盘',
+    partial: '部分占用',
+    still_open: '未占用',
+    mind_limit: '上限未明示',
+    no_matching_role: '无对口岗',
+    open: '可投',
+  };
+
+  function renderQuotas() {
+    const panel = document.getElementById('quota-panel');
+    if (!panel) return;
+    const rows = (data.quotas || []).slice();
+    if (!rows.length) { panel.innerHTML = '<div class="empty">site_quotas.json 里没有额度记录</div>'; return; }
+
+    const exhausted = rows.filter(q => q.status === 'quota_exhausted');
+    const openable = rows.filter(q => q.status === 'partial' || q.status === 'still_open' || q.status === 'open');
+    const sumEl = document.getElementById('quota-summary');
+    if (sumEl) sumEl.textContent = '共 ' + rows.length + ' 条 · 封盘 ' + exhausted.length + ' · 仍可投 ' + openable.length;
+
+    const rank = q => (q.status === 'quota_exhausted' ? 0 : q.status === 'partial' ? 1 : 2);
+    rows.sort((a, b) => {
+      const r = rank(a) - rank(b);
+      if (r !== 0) return r;
+      return String(a.company || '').localeCompare(String(b.company || ''), 'zh');
+    });
+
+    const body = rows.map(q => {
+      const used = (q.used === undefined || q.used === null) ? '?' : q.used;
+      const limit = (q.limit === undefined || q.limit === null) ? '未探明' : q.limit;
+      const st = QUOTA_STATUS_LABEL[q.status] || q.status || '';
+      const cls = q.status === 'quota_exhausted' ? 'chip-bad' : (q.status === 'partial' ? 'chip-warn' : 'chip-good');
+      const note = (q.note || '').replace(/\*\*/g, '');
+      return `<tr>
+        <td class="q-company">${esc(q.company || q.canonical || '')}</td>
+        <td class="q-num">${esc(String(used))} / ${esc(String(limit))}</td>
+        <td><span class="chip ${cls}">${esc(st)}</span></td>
+        <td class="q-note">${note ? esc(note.slice(0, 220)) : ''}</td>
+      </tr>`;
+    }).join('');
+
+    panel.innerHTML = `<table class="quota-table">
+      <thead><tr><th>公司</th><th>已用/上限</th><th>状态</th><th>依据（站内原文优先级最高）</th></tr></thead>
+      <tbody>${body}</tbody></table>`;
   }
 
   // ---------- card builder ----------
@@ -492,7 +673,36 @@
     const catSel = document.getElementById('applied-filter-cat');
     const search = document.getElementById('applied-search');
 
-    let rows = data.jobPool.filter(r => r.status === 'Submitted');
+    // 池内的 Submitted 行 + 只在台账里出现的 Submitted 行（去重后合并）。
+    // 早期版本只看池子，导致 278 笔真实投递里有一百多笔在"已投递"页面上看不到。
+    const poolRows = data.jobPool.filter(r => r.status === 'Submitted');
+    const keyOf = (c, t) => (String(c || '').trim() + '||' + String(t || '').trim()).toLowerCase();
+    const seenKeys = new Set(poolRows.map(r => keyOf(r.company, r.job_title)));
+    const ledgerOnly = [];
+    ledgerSubmitted().forEach(l => {
+      const k = keyOf(l.company, l.job_title);
+      if (seenKeys.has(k)) return;
+      seenKeys.add(k);
+      ledgerOnly.push({
+        __ledgerOnly: true,
+        company: l.company,
+        job_title: l.job_title,
+        location: l.platform ? ('投递平台：' + l.platform) : '',
+        job_url: l.job_url || l.confirmation_url || '',
+        status: 'Submitted',
+        date_found: l.attempt_date,
+        current_stage: '已投递（台账记录）',
+        __jd: (l.job_description || '').trim(),
+        notes: [
+          l.submission_evidence,
+          l.resume_used ? ('简历：' + l.resume_used) : '',
+          l.answers_used ? ('问答：' + l.answers_used) : '',
+          l.notes,
+        ].filter(Boolean).join(' ｜ '),
+        next_action: '',
+      });
+    });
+    let rows = poolRows.concat(ledgerOnly);
 
     // populate category filter once
     if (catSel.options.length <= 1) {

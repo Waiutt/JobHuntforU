@@ -160,7 +160,15 @@ def extract_text(path):
         try:
             import fitz
             doc = fitz.open(path)
-            return "\n".join(p.get_text() for p in doc)
+            # ⚠️ 必须用 sort=True（自然阅读序）：
+            # PyMuPDF 默认按 PDF 内部块存储顺序返回文本，而本仓库的简历模板
+            # （.page 固定 297mm + 绝对/弹性布局）其块序 ≠ 视觉阅读序 ——
+            # 实测同一份 PDF：默认序读到的"正文末尾"是「实习/项目」条目，
+            # 而视觉末尾其实是「自我评价 / 求职说明」。
+            # 而 lead_score 的「自评契合」只在**正文末尾 400 字**里找岗位关键词，
+            # 于是永远读错段落 → 同一份简历默认序 91.3 FAIL、阅读序 96.5 PASS。
+            # 门禁评估的是"人从上到下读到的内容"，故取阅读序为唯一口径。
+            return "\n".join(p.get_text(sort=True) for p in doc)
         except ImportError:
             print("需要 PyMuPDF: pip install pymupdf")
             sys.exit(1)

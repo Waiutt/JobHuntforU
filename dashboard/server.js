@@ -8,11 +8,13 @@
 const http = require('http');
 const fs = require('fs');
 const path = require('path');
+const crypto = require('crypto');
 
-const PORT = 8420;
+const PORT = Number(process.env.JOBHUNT_DASHBOARD_PORT || 8420);
 const ROOT = __dirname;
 const JOB_POOL_PATH = path.join(ROOT, 'job_pool.csv');
 const FOLLOW_UP_PATH = path.join(ROOT, 'follow_up.csv');
+const DSH_HANDOFF_PATH = path.join(ROOT, 'dsh_handoff.json');
 
 const MIME = {
   '.html': 'text/html; charset=utf-8',
@@ -81,6 +83,119 @@ function readJSONBody(req) {
 function sendJSON(res, statusCode, obj) {
   res.writeHead(statusCode, { 'Content-Type': 'application/json; charset=utf-8' });
   res.end(JSON.stringify(obj));
+}
+
+function readHandoffs() {
+  if (!fs.existsSync(DSH_HANDOFF_PATH)) return [];
+  const parsed = JSON.parse(fs.readFileSync(DSH_HANDOFF_PATH, 'utf8'));
+  if (!Array.isArray(parsed)) throw new Error('dsh_handoff.json must contain a JSON array');
+  return parsed;
+}
+
+function writeHandoffs(items) {
+  const tempPath = DSH_HANDOFF_PATH + '.tmp';
+  fs.writeFileSync(tempPath, JSON.stringify(items, null, 2) + '\n', 'utf8');
+  fs.renameSync(tempPath, DSH_HANDOFF_PATH);
+}
+
+function cleanText(value, maxLength = 5000) {
+  return typeof value === 'string' ? value.trim().slice(0, maxLength) : '';
+}
+
+async function handleDshHandoffRequest(req, res) {
+  let payload;
+  try { payload = await readJSONBody(req); }
+  catch (e) { return sendJSON(res, 400, { ok: false, error: e.message }); }
+
+  const company = cleanText(payload?.company, 200);
+  const jobTitle = cleanText(payload?.job_title, 300);
+  const jobUrl = cleanText(payload?.job_url, 2000);
+  if (!company || !jobTitle || !/^https?:\/\//i.test(jobUrl)) {
+    return sendJSON(res, 400, { ok: false, error: 'company, job_title and an http(s) job_url are required' });
+  }
+
+  let items;
+  try { items = readHandoffs(); }
+  catch (e) { return sendJSON(res, 500, { ok: false, error: e.message }); }
+
+  const existing = items.find(item =>
+    item.company === company && item.job_title === jobTitle && item.job_url === jobUrl &&
+    ['pending', 'answered'].includes(item.status)
+  );
+  if (existing) return sendJSON(res, 200, { ok: true, deduplicated: true, handoff: existing });
+
+  const now = new Date().toISOString();
+  const handoff = {
+    id: crypto.randomUUID(),
+    status: 'pending',
+    created_at: now,
+    updated_at: now,
+    company,
+    job_title: jobTitle,
+    job_url: jobUrl,
+    source_platform: cleanText(payload?.source_platform, 100),
+    requested_checks: Array.isArray(payload?.requested_checks)
+      ? payload.requested_checks.map(v => cleanText(v, 300)).filter(Boolean).slice(0, 20)
+      : [],
+    context: cleanText(payload?.context, 10000),
+    response: null
+  };
+  items.push(handoff);
+  try { writeHandoffs(items); }
+  catch (e) { return sendJSON(res, 500, { ok: false, error: e.message }); }
+  sendJSON(res, 201, { ok: true, handoff });
+}
+
+function handleDshHandoffList(req, res) {
+  let items;
+  try { items = readHandoffs(); }
+  catch (e) { return sendJSON(res, 500, { ok: false, error: e.message }); }
+  const requestUrl = new URL(req.url, 'http://127.0.0.1');
+  const status = cleanText(requestUrl.searchParams.get('status'), 30);
+  if (status) items = items.filter(item => item.status === status);
+  sendJSON(res, 200, { ok: true, handoffs: items });
+}
+
+function handleDshHandoffStatus(req, res) {
+  const requestUrl = new URL(req.url, 'http://127.0.0.1');
+  const id = cleanText(requestUrl.searchParams.get('id'), 100);
+  let items;
+  try { items = readHandoffs(); }
+  catch (e) { return sendJSON(res, 500, { ok: false, error: e.message }); }
+  const handoff = items.find(item => item.id === id);
+  if (!handoff) return sendJSON(res, 404, { ok: false, error: 'handoff not found' });
+  sendJSON(res, 200, { ok: true, handoff });
+}
+
+async function handleDshHandoffRespond(req, res) {
+  let payload;
+  try { payload = await readJSONBody(req); }
+  catch (e) { return sendJSON(res, 400, { ok: false, error: e.message }); }
+  const id = cleanText(payload?.id, 100);
+  const decision = cleanText(payload?.decision, 30);
+  if (!id || !['proceed', 'skip', 'needs_user'].includes(decision)) {
+    return sendJSON(res, 400, { ok: false, error: 'id and decision (proceed|skip|needs_user) are required' });
+  }
+  let items;
+  try { items = readHandoffs(); }
+  catch (e) { return sendJSON(res, 500, { ok: false, error: e.message }); }
+  const handoff = items.find(item => item.id === id);
+  if (!handoff) return sendJSON(res, 404, { ok: false, error: 'handoff not found' });
+  handoff.status = 'answered';
+  handoff.updated_at = new Date().toISOString();
+  handoff.response = {
+    decision,
+    responder: cleanText(payload?.responder, 100) || 'DeepSeek Harness',
+    official_entry_verified: payload?.official_entry_verified === true,
+    cohort_verified: payload?.cohort_verified === true,
+    duplicate_found: payload?.duplicate_found === true,
+    application_limit: cleanText(payload?.application_limit, 500),
+    resume_variant: cleanText(payload?.resume_variant, 500),
+    notes: cleanText(payload?.notes, 10000)
+  };
+  try { writeHandoffs(items); }
+  catch (e) { return sendJSON(res, 500, { ok: false, error: e.message }); }
+  sendJSON(res, 200, { ok: true, handoff });
 }
 
 const DATE_RE = /^\d{4}-\d{2}-\d{2}$/;
@@ -337,10 +452,21 @@ const ROUTES = {
   '/api/calendar/add': handleCalendarAdd,
   '/api/calendar/update': handleCalendarUpdate,
   '/api/calendar/delete': handleCalendarDelete,
+  '/api/dsh-handoff/request': handleDshHandoffRequest,
+  '/api/dsh-handoff/respond': handleDshHandoffRespond,
 };
 
 const server = http.createServer((req, res) => {
   const urlPath = decodeURIComponent(req.url.split('?')[0]);
+
+  if (req.method === 'GET' && urlPath === '/api/dsh-handoff/list') {
+    handleDshHandoffList(req, res);
+    return;
+  }
+  if (req.method === 'GET' && urlPath === '/api/dsh-handoff/status') {
+    handleDshHandoffStatus(req, res);
+    return;
+  }
 
   if (req.method === 'POST' && ROUTES[urlPath]) {
     ROUTES[urlPath](req, res);

@@ -19,3 +19,52 @@ dashboard/*.csv
 *.png
 .DS_Store
 Thumbs.db
+
+# ============================================================
+# 🔴 仓库为 PUBLIC —— 以下为 2026-09-30 提交前隐私扫描补漏
+# 原因：原有规则只写了精确名 `candidate_profile.json` 与 `dashboard/*.csv`，
+# 匹配不到 .bak-* / *.csv_*.bak / history/ 等备份变体，
+# 实测会让 73 个含【身份证号/手机号/邮箱/真实姓名】的文件进入提交。
+# ============================================================
+
+# 1) 个人档案与任意备份变体
+candidate_profile.json.*
+*.bak
+*.bak-*
+*.bak-*.*
+
+# 2) dashboard 目录改为「白名单」：只放行工具代码，其余（数据/笔记/备份/历史）全排除
+dashboard/*
+!dashboard/dashboard.html
+!dashboard/server.js
+!dashboard/start-dashboard.bat
+!dashboard/start-dashboard.sh
+!dashboard/check_dupe.py
+!dashboard/followup_check.py
+!dashboard/_jobhunt_common.py
+
+# 3) 额度表 / 别名表（含运行期备注，实测夹带手机号与邮箱）
+dashboard/site_quotas.json
+dashboard/company_aliases.json
+dashboard/简历索引_全量.json
+
+# 4) 工作流笔记与启动说明（实测含身份证号/手机号/邮箱）
+JobHuntBot工作流_DSH可复用版.md
+STARTUP.md
+STARTUP.md.*
+
+# 5) 临时与探测产物
+archive/
+.probe/
+.playwright-cli/
+*.tmp
+dashboard/tmp*
+dashboard/__pycache__/
+tmp/
+tmp_*.md
+__pycache__/
+
+# 6) Word 文档（面试备战稿/薪资谈判稿等，二进制无法被文本扫描覆盖，一律不提交）
+*.docx
+*.doc
+
