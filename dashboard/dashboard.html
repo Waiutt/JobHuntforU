@@ -600,6 +600,9 @@
     open: '可投',
   };
 
+  // 额度表：是否展开「已封盘」条目（默认折叠，94 行里 65 行已封盘）
+  let quotaShowAll = false;
+
   function renderQuotas() {
     const panel = document.getElementById('quota-panel');
     if (!panel) return;
@@ -611,30 +614,59 @@
     const sumEl = document.getElementById('quota-summary');
     if (sumEl) sumEl.textContent = '共 ' + rows.length + ' 条 · 封盘 ' + exhausted.length + ' · 仍可投 ' + openable.length;
 
-    const rank = q => (q.status === 'quota_exhausted' ? 0 : q.status === 'partial' ? 1 : 2);
+    const rank = q => (q.status === 'quota_exhausted' ? 2 : q.status === 'partial' ? 0 : 1);
     rows.sort((a, b) => {
       const r = rank(a) - rank(b);
       if (r !== 0) return r;
       return String(a.company || '').localeCompare(String(b.company || ''), 'zh');
     });
 
-    const body = rows.map(q => {
+    // 已封盘条目默认折叠（94 行里 65 行已封盘，展开只是噪声）
+    const exhaustedCount = rows.filter(q => q.status === 'quota_exhausted').length;
+    const visible = quotaShowAll ? rows : rows.filter(q => q.status !== 'quota_exhausted');
+    const hiddenCount = rows.length - visible.length;
+
+    const notes = [];
+    const body = visible.map((q, i) => {
       const used = (q.used === undefined || q.used === null) ? '?' : q.used;
       const limit = (q.limit === undefined || q.limit === null) ? '未探明' : q.limit;
       const st = QUOTA_STATUS_LABEL[q.status] || q.status || '';
       const cls = q.status === 'quota_exhausted' ? 'chip-bad' : (q.status === 'partial' ? 'chip-warn' : 'chip-good');
       const note = (q.note || '').replace(/\*\*/g, '');
+      notes.push(note);
+      const short = note ? note.slice(0, 78) + (note.length > 78 ? '…' : '') : '';
       return `<tr>
         <td class="q-company">${esc(q.company || q.canonical || '')}</td>
         <td class="q-num">${esc(String(used))} / ${esc(String(limit))}</td>
         <td><span class="chip ${cls}">${esc(st)}</span></td>
-        <td class="q-note">${note ? esc(note.slice(0, 220)) : ''}</td>
+        <td class="q-note${note.length > 78 ? ' clamp' : ''}" data-idx="${i}"${note.length > 78 ? ' title="点击展开全文"' : ''}>${esc(short)}</td>
       </tr>`;
     }).join('');
 
-    panel.innerHTML = `<table class="quota-table">
-      <thead><tr><th>公司</th><th>已用/上限</th><th>状态</th><th>依据（站内原文优先级最高）</th></tr></thead>
-      <tbody>${body}</tbody></table>`;
+    const toggle = quotaShowAll
+      ? `<div class="quota-more"><button class="btn" id="quota-toggle">收起已封盘条目（${exhaustedCount} 条）</button></div>`
+      : (hiddenCount > 0 ? `<div class="quota-more"><button class="btn" id="quota-toggle">显示已封盘 ${hiddenCount} 条</button></div>` : '');
+
+    panel.innerHTML = `<div class="table-wrap"><table class="quota-table">
+      <thead><tr><th>公司</th><th>已用/上限</th><th>状态</th><th>依据（站内原文）</th></tr></thead>
+      <tbody>${body}</tbody></table></div>${toggle}`;
+
+    // 「依据」单元格：点击在原位展开/收起全文（长文不再撑高表格）
+    panel.querySelectorAll('.q-note[data-idx]').forEach(td => {
+      td.addEventListener('click', (e) => {
+        e.stopPropagation();
+        const full = notes[Number(td.dataset.idx)] || '';
+        if (td.classList.contains('open')) {
+          td.classList.remove('open'); td.classList.add('clamp');
+          td.textContent = full.slice(0, 78) + (full.length > 78 ? '…' : '');
+        } else {
+          td.classList.remove('clamp'); td.classList.add('open');
+          td.textContent = full;
+        }
+      });
+    });
+    const tg = document.getElementById('quota-toggle');
+    if (tg) tg.addEventListener('click', () => { quotaShowAll = !quotaShowAll; renderQuotas(); });
   }
 
   // ---------- card builder ----------
