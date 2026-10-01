@@ -31,8 +31,9 @@ except Exception:
 
 from _jobhunt_common import verdict, alias_config, normalize  # noqa: E402
 
-ICON = {'company_blocked': '⛔', 'position_dupe': '🚫', 'clear': '✅'}
-LABEL = {'company_blocked': '公司级禁止', 'position_dupe': '岗位级重复', 'clear': '可投'}
+ICON = {'company_blocked': '⛔', 'position_dupe': '🚫', 'clear': '✅', 'needs_review': '🟡'}
+LABEL = {'company_blocked': '公司级禁止', 'position_dupe': '岗位级重复', 'clear': '可投',
+         'needs_review': '公司名有歧义·需补全'}
 
 
 def parse_args(argv):
@@ -82,6 +83,8 @@ def main():
         lvl = res['level']
         print('=' * 66)
         print('%s 查重：%s' % (ICON[lvl], kw))
+        if res.get('warn'):
+            print('  %s %s' % ('🔎' if res['match_method'] == 'reverse-contains' else '⚠️', res['warn']))
         if res['canonical'] and normalize(res['canonical']) != normalize(kw):
             print('  🔗 归一化 → 「%s」（命中别名：%s，方式：%s）' % (
                 res['canonical'], res['matched_alias'], res['match_method']))
@@ -117,6 +120,9 @@ def main():
 
         if lvl == 'company_blocked':
             print('  ⛔ 禁止开填表单，先与用户确认')
+            blocked_any = True
+        elif lvl == 'needs_review':
+            print('  🟡 公司名有歧义 → **不得据此判定可投**，请用台账里的完整公司名重查')
             blocked_any = True
         elif lvl == 'position_dupe':
             print('  🚫 该岗位已投；同公司其他岗位仍可投（额度未满）')

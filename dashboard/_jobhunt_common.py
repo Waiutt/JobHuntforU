@@ -201,6 +201,31 @@ def resolve_company(name):
         return {'canonical': best[1], 'matched_alias': best[2], 'method': 'contains',
                 'input': input_display, 'candidates': cands}
 
+    # 2.5) 反向包含命中（输入是「已登记名/别名」的子串）—— 2026-10-01 修
+    #   事故：`check_dupe.py 帆软` 判「台账无记录」，而台账里其实有 `帆软软件` 的 2 条记录
+    #   ⇒ **假阴性 → 会导致重复投递**。根因是上面的「包含命中」只判 `别名 ⊂ 输入`（单向），
+    #     当输入比登记名更短时永远不命中。
+    #   🛡️ 安全护栏（不违反本模块开篇第 2 条「禁止模糊前缀匹配」）：
+    #     ① 输入归一化长度必须 >= 2；
+    #     ② **必须唯一命中唯一 canonical**；命中多个一律不解析，改为报「歧义」并列出候选，
+    #        这样「中国」这类宽词会要求补全，不会重演「中国电子云 → 中国电信」的误报。
+    rev = {}
+    if len(raw_norm) >= 2:
+        for an, (canon, orig, ln) in idx.items():
+            if an != raw_norm and raw_norm in an:
+                rev.setdefault(canon, []).append(orig)
+    if len(rev) == 1:
+        canon = next(iter(rev))
+        return {'canonical': canon, 'matched_alias': rev[canon][0], 'method': 'reverse-contains',
+                'input': input_display, 'candidates': [canon],
+                'warn': '输入「%s」是已登记名的子串 → 已按**唯一候选**解析为「%s」' % (input_display, canon)}
+    if len(rev) > 1:
+        keys = sorted(rev.keys())
+        return {'canonical': None, 'matched_alias': None, 'method': 'ambiguous-contains',
+                'input': input_display, 'candidates': keys,
+                'warn': '输入「%s」命中 %d 家已登记公司，**不予判定**，请用更完整的名字重查：%s'
+                        % (input_display, len(keys), '、'.join(keys[:10]))}
+
     # 3) 兜底规范化（确定性裁剪，非模糊前缀匹配）
     core, extras = suggest_canonical(name)
     if core:
@@ -395,6 +420,18 @@ def verdict(query, job_title=None):
     """
     res = resolve_company(query)
     canonical = res['canonical']
+
+    # 🛡️ 歧义保护（2026-10-01 随反向包含一起加）：输入命中多家已登记公司时，
+    #    **一律不给「可投」**，改为要求补全公司名 —— 避免「中国」这类宽词误判。
+    if res.get('method') == 'ambiguous-contains':
+        return {
+            'query': res['input'], 'canonical': None, 'match_method': res['method'],
+            'matched_alias': None, 'candidates': res['candidates'], 'hits': [], 'taken': [],
+            'company_level': [], 'position_level': [], 'review': [], 'quota': None,
+            'blocked_entry': None, 'level': 'needs_review',
+            'warn': res.get('warn', ''), 'reason': res.get('warn', '公司名有歧义，请补全后重查'),
+        }
+
     search_aliases = [query] + ([canonical] if canonical else [])
     if canonical:
         spec = alias_config().get('aliases', {}).get(canonical, {})
@@ -426,6 +463,7 @@ def verdict(query, job_title=None):
         'blocked_entry': blocked_entry,
         'level': 'clear',
         'reason': '',
+        'warn': res.get('warn'),
     }
 
     # —— 公司级第一优先 ——
