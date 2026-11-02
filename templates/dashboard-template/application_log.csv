@@ -1,1 +1,2 @@
-attempt_date,company,job_title,job_url,platform,status,submission_evidence,resume_used,answers_used,confirmation_url,confirmation_text,job_description,notes
+attempt_date,company,job_title,job_url,platform,status,submission_evidence,resume_used,answers_used,confirmation_url,confirmation_text,job_description,notes,stage_detail,outcome_reason,stage_updated_at
+2026-01-15,示例科技（Example Tech）,售前解决方案工程师 · 2027届校园招聘 · 全职 · 深圳,https://careers.example.com/jobs/123,企业官网 ATS,Submitted,✅ 站内原文：投递记录显示「申请成功 / 2026-01-15」,<姓名>_示例科技_售前解决方案_简历.pdf,期望城市 深圳；到岗 2027-07,https://careers.example.com/my/applications,"申请成功 ｜ 2026-01-15",示例 JD 摘要：客户需求调研、方案输出、招投标配合、POC 演示。,【示例行·可删】演示 16 列台账的写法：状态以站内原文为凭，notes 写变更原因与证据来源。,已提交 · 待筛选（站内状态：申请成功）,,2026-01-15

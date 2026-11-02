@@ -13,6 +13,7 @@ const crypto = require('crypto');
 const PORT = Number(process.env.JOBHUNT_DASHBOARD_PORT || 8420);
 const ROOT = __dirname;
 const JOB_POOL_PATH = path.join(ROOT, 'job_pool.csv');
+const TODOS_PATH = path.join(ROOT, 'todos.json');
 const FOLLOW_UP_PATH = path.join(ROOT, 'follow_up.csv');
 const DSH_HANDOFF_PATH = path.join(ROOT, 'dsh_handoff.json');
 
@@ -447,11 +448,46 @@ async function handleCalendarDelete(req, res) {
   sendJSON(res, 200, { ok: true });
 }
 
+// ── 待办事项（todos.json）：勾选/取消勾选 ────────────────────────────
+// 只在文件里改 done / done_at 两个字段，其余条目原样保留。
+async function handleTodoToggle(req, res) {
+  let payload;
+  try { payload = await readJSONBody(req); }
+  catch (e) { return sendJSON(res, 400, { ok: false, error: e.message }); }
+
+  const id = payload && payload.id;
+  if (!id) return sendJSON(res, 400, { ok: false, error: 'id is required' });
+
+  if (!fs.existsSync(TODOS_PATH)) {
+    return sendJSON(res, 500, { ok: false, error: 'todos.json not found' });
+  }
+  let doc;
+  try { doc = JSON.parse(fs.readFileSync(TODOS_PATH, 'utf8')); }
+  catch (e) { return sendJSON(res, 500, { ok: false, error: 'Could not read todos.json: ' + e.message }); }
+
+  const items = Array.isArray(doc.items) ? doc.items : [];
+  const item = items.find(x => x && x.id === id);
+  if (!item) return sendJSON(res, 404, { ok: false, error: 'todo not found: ' + id });
+
+  // done 未显式给出时按「取反」处理，便于前端只传 id
+  const nextDone = (typeof payload.done === 'boolean') ? payload.done : !item.done;
+  item.done = nextDone;
+  item.done_at = nextDone ? new Date().toISOString().slice(0, 10) : '';
+  doc.updated_at = new Date().toISOString().slice(0, 10);
+
+  try { fs.writeFileSync(TODOS_PATH, JSON.stringify(doc, null, 2) + '\n'); }
+  catch (e) { return sendJSON(res, 500, { ok: false, error: 'Could not write todos.json: ' + e.message }); }
+
+  const openCount = items.filter(x => !x.done).length;
+  sendJSON(res, 200, { ok: true, id: id, done: item.done, done_at: item.done_at, open: openCount, total: items.length });
+}
+
 const ROUTES = {
   '/api/update-status': handleUpdateStatus,
   '/api/calendar/add': handleCalendarAdd,
   '/api/calendar/update': handleCalendarUpdate,
   '/api/calendar/delete': handleCalendarDelete,
+  '/api/todos/toggle': handleTodoToggle,
   '/api/dsh-handoff/request': handleDshHandoffRequest,
   '/api/dsh-handoff/respond': handleDshHandoffRespond,
 };

@@ -85,7 +85,10 @@
     background: var(--surface-1); border: 1px solid var(--border); border-radius: 14px;
     padding: 24px; cursor: pointer; text-align: left; transition: border-color .15s;
   }
-  .tile:hover { border-color: var(--series-1); }
+  /* 只有真正带 data-view 的磁贴可点；纯统计磁贴（.tile-static）不显示手型与高亮，
+     否则会诱导点击 → 之前 showView(undefined) 会把整页清空。 */
+  .tile:not(.tile-static):hover { border-color: var(--series-1); }
+  .tile-static { cursor: default; }
   .tile .label { font-size: 14px; color: var(--text-secondary); margin-bottom: 8px; }
   .tile .value { font-size: 40px; font-weight: 600; font-variant-numeric: tabular-nums; }
   .tile .sub { font-size: 12px; color: var(--text-muted); margin-top: 6px; }
@@ -131,6 +134,14 @@
   .detail dt:first-child { margin-top:0; }
   .detail dd { margin:2px 0 0; }
   .detail a { color: var(--series-1); }
+
+  /* 待办事项（2026-10-09）*/
+  .todo-card { cursor: pointer; }
+  .todo-card:hover { border-color: var(--series-1); }
+  .todo-card.todo-done { opacity: .58; }
+  .todo-card.todo-done .card-title { text-decoration: line-through; }
+  .todo-card .card-sub { white-space: pre-wrap; }
+  .todo-card .todo-check { width: 19px; height: 19px; }
 
   .empty { color: var(--text-muted); font-size:14px; padding: 24px 0; text-align:center; }
   .timeline-item { padding: 4px 0; border-bottom: 1px dashed var(--gridline); }
@@ -293,6 +304,86 @@
     .calendar-day { flex: 1 1 112px; min-width: 112px; }
     .calendar-section { padding: 14px; }
   }
+
+  /* ---------- 在途（活口）· 数据一致性 · 邮箱动态（2026-10-02 新增） ---------- */
+  /* 首页首块磁贴高亮 —— 它才是"真正还在流程里"的数字，其余磁贴是历史口径 */
+  .tile-accent { border-color: color-mix(in srgb, var(--series-1) 45%, var(--border)); }
+  .tile-accent .value { color: var(--series-1); }
+
+  .btn-inline { font-size: 12px; padding: 4px 10px; margin-left: 10px; vertical-align: middle; }
+
+  .callout {
+    background: color-mix(in srgb, var(--series-1) 6%, var(--surface-1));
+    border: 1px solid var(--border); border-left: 3px solid var(--series-1);
+    border-radius: 10px; padding: 12px 14px; margin: 12px 0 14px;
+    font-size: 13px; line-height: 1.65; color: var(--text-secondary);
+  }
+  .callout code { background: var(--chip-bg); padding: 1px 5px; border-radius: 4px; font-size: 12px; }
+
+  .consistency-panel { margin-bottom: 6px; }
+  .consistency-panel .quota-table { width: 100%; border-collapse: collapse; font-size: 13px; }
+  .consistency-panel th { text-align: left; font-weight: 600; color: var(--text-secondary);
+    font-size: 12px; padding: 6px 8px; border-bottom: 1px solid var(--gridline); }
+  .consistency-panel td { padding: 7px 8px; border-bottom: 1px solid var(--gridline); vertical-align: top; }
+
+  .card-body {
+    font-size: 12px; color: var(--text-secondary); line-height: 1.6; margin-top: 8px;
+    padding-top: 8px; border-top: 1px dashed var(--gridline);
+    white-space: pre-wrap; word-break: break-word;
+  }
+  .kv { display: flex; flex-wrap: wrap; gap: 6px 18px; margin-top: 8px; font-size: 12px; color: var(--text-secondary); }
+  .kv b { color: var(--text-muted); font-weight: 500; margin-right: 5px; }
+
+  .inflight-warn {
+    margin-top: 8px; font-size: 12px; line-height: 1.5;
+    color: var(--status-critical);
+    background: color-mix(in srgb, var(--status-critical) 8%, transparent);
+    border-radius: 8px; padding: 6px 10px;
+  }
+  .inflight-note {
+    margin-top: 8px; font-size: 12px; line-height: 1.5;
+    color: var(--status-warning);
+    background: color-mix(in srgb, var(--status-warning) 10%, transparent);
+    border-radius: 8px; padding: 6px 10px;
+  }
+  /* 复访按钮行（2026-10-02） */
+  .url-row { display: flex; flex-wrap: wrap; gap: 8px; align-items: center; margin-top: 10px; }
+  .url-row .btn-inline { margin-left: 0; text-decoration: none; display: inline-block; }
+  .url-row a.btn-inline:hover { border-color: var(--series-1); color: var(--series-1); }
+
+  /* ── 书页式翻页器（2026-10-04 用户要求：已投递太多，避免无限下滑）──────── */
+  .book-pager {
+    display: flex; flex-wrap: wrap; align-items: center; justify-content: center;
+    gap: 6px; margin: 16px 0 4px; padding: 12px 10px;
+    border: 1px solid var(--border); border-radius: 10px;
+    background: linear-gradient(180deg, rgba(127,127,127,0.05), rgba(127,127,127,0.015));
+    position: sticky; bottom: 8px; backdrop-filter: blur(6px);
+  }
+  .book-pager .page-btn {
+    min-width: 34px; padding: 5px 9px; font: inherit; font-size: 12.5px; cursor: pointer;
+    color: var(--text); background: transparent;
+    border: 1px solid var(--border); border-radius: 7px; transition: all .12s ease;
+  }
+  .book-pager .page-btn:hover:not(.disabled):not(.active) { border-color: var(--series-1); color: var(--series-1); }
+  .book-pager .page-btn.active {
+    background: var(--series-1); border-color: var(--series-1); color: #fff; font-weight: 600;
+    box-shadow: 0 2px 8px rgba(0,0,0,.18);
+  }
+  .book-pager .page-btn.disabled { opacity: .38; cursor: not-allowed; }
+  .book-pager .page-gap { color: var(--text-muted); padding: 0 2px; }
+  .book-pager .page-jump { color: var(--text-muted); font-size: 12px; margin-left: 6px; }
+  /* 书页顶部：页码书签条 */
+  .book-ribbon {
+    display: flex; align-items: center; justify-content: space-between; gap: 10px;
+    margin: 2px 0 10px; padding: 7px 11px;
+    border-left: 3px solid var(--series-1);
+    background: rgba(127,127,127,0.05); border-radius: 0 7px 7px 0;
+    font-size: 12.5px; color: var(--text);
+  }
+  .book-ribbon .r-page { font-weight: 600; }
+  .book-ribbon .r-hint { color: var(--text-muted); font-size: 11.5px; }
+  /* 每页内部：公司卡片收紧一点，尽量一屏放得下 */
+  #applied-list .company-group { margin-bottom: 8px; }
 </style>
 </head>
 <body>
@@ -311,6 +402,7 @@
   <div id="connect-screen">
     <h2 id="connect-title">正在读取数据…</h2>
     <p id="connect-desc">从同目录下的 job_pool.csv 等文件读取最新数据。</p>
+<p style="margin:6px 0 0"><a href="./assessment.html" style="color:var(--series-1);font-weight:600;text-decoration:none">→ 打开「测评性质看板」（海测 vs 过筛再测 · 卡牌可点击下钻）</a></p>
     <p class="warn" id="connect-warn"></p>
   </div>
 
@@ -318,37 +410,78 @@
 
     <div id="home-view">
       <div class="tiles">
+        <button class="tile tile-accent" data-view="inflight">
+          <div class="label">在途（已核对）</div>
+          <div class="value" id="tile-inflight">–</div>
+          <div class="sub" id="tile-inflight-sub">有过站内/邮箱实查且在流程</div>
+        </button>
         <button class="tile" data-view="applied">
           <div class="label">已投递（台账）</div>
           <div class="value" id="tile-applied">–</div>
-          <div class="sub" id="tile-applied-sub">application_log.csv 的 Submitted</div>
+          <div class="sub" id="tile-applied-sub">历史投递总数，≠ 还在流程</div>
         </button>
-        <div class="tile">
+        <div class="tile tile-static">
           <div class="label">台账总记录</div>
           <div class="value" id="tile-ledger-total">–</div>
           <div class="sub" id="tile-ledger-sub">含拒/终止/测评/面试</div>
         </div>
-        <div class="tile">
-          <div class="label">今日投递</div>
+        <button class="tile" data-view="applied">
+          <div class="label">投递节奏</div>
           <div class="value" id="tile-today">–</div>
-          <div class="sub" id="tile-today-sub">按 attempt_date 统计</div>
-        </div>
+          <div class="sub" id="tile-today-sub">按投递日期（attempt_date）统计</div>
+        </button>
         <button class="tile" data-view="pending">
           <div class="label">未投递</div>
           <div class="value" id="tile-pending">–</div>
           <div class="sub">目标池里还没投的公司</div>
         </button>
         <button class="tile" data-view="ended">
-          <div class="label">已结束（池内）</div>
+          <div class="label">已终止（池内）</div>
           <div class="value" id="tile-ended">–</div>
-          <div class="sub">拿到 offer 或已被拒</div>
+          <div class="sub">Offer · 被拒 · 流程终止 · 被拦</div>
+        </button>
+        <button class="tile" data-view="assessment">
+          <div class="label">测评性质</div>
+          <div class="value" id="tile-assessment">–</div>
+          <div class="sub" id="tile-assessment-sub">海测 vs 过筛再测（点开看分类卡）</div>
+        </button>
+        <button class="tile" data-view="excluded">
+          <div class="label">已排除（池内）</div>
+          <div class="value" id="tile-excluded">–</div>
+          <div class="sub">主动跳过 / 不符合口径</div>
         </button>
       </div>
 
-      <div class="section-title">站点额度 · site_quotas.json <span class="meta" id="quota-summary"></span></div>
-      <div id="quota-panel" class="quota-panel"></div>
+      <div class="callout" style="border-left-color:var(--status-good)"><b>▶ 投递已恢复</b>（用户 <b>2026-10-13</b> 决定：<b>「可以投递」</b>，自当日 12:00 起解除 10-10 的暂停与 10-13 早间的暂缓）——
+<b>企业官网 / 官方 ATS 恢复新增投递</b>（招聘网站仍只扫岗、不在站内投递）；<b>已投递岗位的流程推进（测评/面试/材料确认）与台账核对照常</b>。
+口径详见 <code>_用户口径_汇总_2026-10-09.md</code>（2026-10-13 更新·含投递恢复）。</div>
+<div class="section-title">阶段细分 · 台账 <span class="meta" id="stage-summary"></span></div>
+<div class="callout">在途按<b>细分阶段</b>归类（待筛选 / 测评·笔试 / 已测评待结果 / AI面 / 一面 / 二面 / 终面 / 待补材料 / Offer），
+已终止按<b>细分原因</b>归类（初筛挂 / 测评挂 / 笔试挂 / AI面挂 / 一面挂 / 二面挂 / 终面挂 / 体检背调挂 / 岗位关闭 / 本人放弃 / 未说明）。
+数据取自台账新增列 <code>stage_detail</code>（在途细分）与 <code>outcome_reason</code>（终止细分）。</div>
+<div id="stage-panel" class="stage-panel" style="margin:10px 0 18px"></div>
 
-      <div class="section-title">未来 7 天日程</div>
+<!-- 2026-10-09 用户要求：站点额度不再单独成块展示（原「站点额度 · site_quotas.json」区块已移除），改为在「已投递」内对应公司条目上备注 -->
+
+      <div class="section-title">数据一致性 · 职位池 ↔ 台账 <span class="meta" id="consistency-summary"></span></div>
+      <div id="consistency-panel" class="consistency-panel"></div>
+
+      <div class="section-title">待核对队列 · verify_queue.json <span class="meta" id="vq-summary"></span></div>
+      <div class="callout" id="vq-note"></div>
+      <div id="vq-panel" class="consistency-panel"></div>
+
+      <div class="section-title">邮箱动态 · mailbox.json <span class="meta" id="mail-home-summary"></span>
+        <button class="btn btn-inline" data-view="mail">查看全部 →</button>
+      </div>
+      <div id="mail-home-list"></div>
+
+      <div class="section-title">待办事项 · todos.json <span class="meta" id="todo-summary"></span>
+<button class="btn btn-inline" id="todo-toggle-done">显示/隐藏已完成</button>
+</div>
+<div class="callout">勾选 = 该项已完成（会写回 <code>todos.json</code> 的 <code>done</code>/<code>done_at</code>）。内容由 Agent 依据邮件原文/站内原文/用户口述维护。</div>
+<div id="todo-list"></div>
+
+<div class="section-title">未来 7 天日程</div>
       <div class="calendar-section">
         <div id="calendar-week" class="calendar-week"></div>
         <div class="calendar-add-row">
@@ -395,6 +528,9 @@
         <div><button class="back-link" data-back>← 返回</button><h2>已投递</h2></div>
         <div class="filters">
           <select id="applied-filter-cat"><option value="">全部分类</option></select>
+      <select id="applied-filter-industry"><option value="">全部行业</option></select>
+      <select id="applied-filter-city"><option value="">全部城市</option></select>
+      <select id="applied-filter-nature"><option value="">全部性质</option></select>
           <input type="text" id="applied-search" placeholder="搜索公司…">
         </div>
       </div>
@@ -415,16 +551,90 @@
       <div id="pending-open-list"></div>
       <div class="section-title" id="pending-notopen-title">未开 / 状态不明</div>
       <div id="pending-notopen-list"></div>
+      <div class="section-title" id="pending-stale-title">⚠️ 池内状态未同步（台账显示已投）</div>
+      <div class="callout" id="pending-stale-note"></div>
+      <div id="pending-stale-list"></div>
+      <div class="section-title" id="pending-sameco-title">🟡 同公司已投过别的岗</div>
+      <div class="callout" id="pending-sameco-note"></div>
+      <div id="pending-sameco-list"></div>
     </div>
 
     <div id="ended-view" class="hidden">
       <div class="view-header">
-        <div><button class="back-link" data-back>← 返回</button><h2>已结束</h2></div>
+        <div><button class="back-link" data-back>← 返回</button><h2>已终止</h2></div>
         <div class="filters">
           <input type="text" id="ended-search" placeholder="搜索公司…">
         </div>
       </div>
       <div id="ended-list"></div>
+    </div>
+
+    <div id="excluded-view" class="hidden">
+      <div class="view-header">
+        <div><button class="back-link" data-back>← 返回</button><h2>已排除（池内）</h2></div>
+        <div class="filters">
+          <select id="excluded-filter-status">
+            <option value="">全部原因</option>
+            <option value="Skipped">主动跳过</option>
+            <option value="NotFit">不符合口径</option>
+          </select>
+          <input type="text" id="excluded-search" placeholder="搜索公司 / 岗位…">
+        </div>
+      </div>
+      <div class="callout">这里的每一行都是<b>判定不投</b>的记录：<b>主动跳过</b>（用户裁决或条件不符，可复议）与<b>不符合口径</b>（学历 / 专业 / 岗位类型硬卡）。保留此屏是为了<b>可追溯</b> —— 想复议就把该行 status 改回 ToApply。<br>
+        ⚠️ <b>口径（2026-10-10 用户）</b>：<b>同公司已有投递</b>的行（哪怕投的是别的岗位）<b>不计入排除名单</b> —— 公司已在流程里、机会没丢，故单独列在下方分区。</div>
+      <div class="section-title">排除名单 <span class="meta" id="excluded-real-meta"></span></div>
+      <div id="excluded-list"></div>
+      <div id="excluded-sameco-section">
+        <div class="section-title">同司已投 · 不计入排除 <span class="meta" id="excluded-sameco-meta"></span></div>
+        <div class="callout">这些岗位本身<b>没投</b>（status 仍是 Skipped / NotFit），但<b>同一家公司已投过别的岗位</b> ⇒ 按用户口径不计入上面的排除名单；列在这里仅为<b>留痕</b>，不必复议。</div>
+        <div id="excluded-sameco-list"></div>
+      </div>
+    </div>
+
+    <div id="inflight-view" class="hidden">
+      <div class="view-header">
+        <div><button class="back-link" data-back>← 返回</button><h2>在途（活口）</h2></div>
+        <div class="filters">
+          <select id="inflight-filter-status"><option value="">全部状态</option></select>
+          <select id="inflight-filter-fresh">
+            <option value="">全部核对状态</option>
+            <option value="confident">✅ 仅看已核对（可信在流程）</option>
+            <option value="unverified">⚠️ 仅看待核对（状态非终态但未核）</option>
+            <option value="linked">🔗 仅看有可用链接</option>
+          </select>
+          <input type="text" id="inflight-search" placeholder="搜索公司…">
+          <button class="btn btn-inline" id="inflight-copy">复制链接清单</button>
+        </div>
+      </div>
+      <div class="callout" id="inflight-summary"></div>
+      <div id="inflight-list"></div>
+    </div>
+
+    <div id="assessment-view" class="hidden">
+<div class="view-header">
+<div><button class="back-link" data-back>← 返回</button><h2>测评性质 · 海测 vs 过筛再测</h2></div>
+<div class="filters">
+<select id="assessment-filter-nature"><option value="">全部性质</option></select>
+<input type="text" id="assessment-search" placeholder="搜索公司 / 岗位…">
+<a class="btn btn-inline" href="./assessment.html" target="_blank" rel="noopener">单独打开此看板 ↗</a>
+</div>
+</div>
+<div class="callout" id="assessment-note"></div>
+<div id="assessment-cards"></div>
+<div id="assessment-list"></div>
+</div>
+
+<div id="mail-view" class="hidden">
+      <div class="view-header">
+        <div><button class="back-link" data-back>← 返回</button><h2>邮箱动态</h2></div>
+        <div class="filters">
+          <select id="mail-filter-tag"><option value="">全部语义</option></select>
+          <input type="text" id="mail-search" placeholder="搜索公司 / 主题…">
+        </div>
+      </div>
+      <div class="callout" id="mail-summary"></div>
+      <div id="mail-list"></div>
     </div>
 
   </div>
@@ -479,7 +689,7 @@
   }
 
   // ---------- data ----------
-  const data = { jobPool: [], appLog: [], followUp: [], quotas: [] };
+  const data = { jobPool: [], appLog: [], followUp: [], quotas: [], mailbox: [], verifyQueue: null };
 
   async function readCSVFile(name) {
     const res = await fetch('./' + name + '?t=' + Date.now(), { cache: 'no-store' });
@@ -495,6 +705,11 @@
 
   async function loadAll() {
     const warnEl = document.getElementById('connect-warn');
+    // ⚠️ 重读前必须先让缓存失效：台账/别名表随时可能被 Agent 重写，而索引是"懒加载只建一次"的。
+    //   此前 _ledgerIdx 只在首次构建 —— 点「刷新」后仍拿旧台账做「未投递/同公司已投」匹配（过期数据）。
+    _ledgerIdx = null;
+    _aliasVar2Canon = null;
+    _containCache = null;
     try {
       data.jobPool = await readCSVFile('job_pool.csv');
       // Row position in job_pool.csv (excluding header) — this is how the
@@ -507,6 +722,25 @@
       // site_quotas.json 是站点投递额度的唯一真相源（used/limit/status），
       // 早期看板没读它 —— 补上，否则"某站还能不能投"这个最关键的信息看不到。
       data.quotas = (await readJSONFile('site_quotas.json').catch(() => ({}))).quotas || [];
+    // 2026-10-09 公司分类（行业/规模/性质/城市）：company_profile.csv
+    data.companyProfile = await readCSVFile('company_profile.csv').catch(() => []);
+    // 邮箱语义扫描的结果（Agent 维护的 sidecar，看板只读）。缺失不报错。
+    const mb = await readJSONFile('mailbox.json').catch(() => ({}));
+    data.mailbox = (mb && Array.isArray(mb.items)) ? mb.items : [];
+    data.mailboxMeta = mb || {};
+    // 2026-10-09 待办事项（todos.json）：勾选即完成，写回由 POST /api/todos/toggle 负责
+    const td = await readJSONFile('todos.json').catch(() => ({}));
+    data.todos = (td && Array.isArray(td.items)) ? td.items : [];
+    data.todosMeta = td || {};
+    // 2026-10-10 测评性质看板并入主看板：性质判定来自 assessment_nature.csv，状态/阶段从台账实时取
+    data.assessmentNature = await readCSVFile('assessment_nature.csv').catch(() => []);
+    // 待核对队列（由 _build_verify_queue.py 生成；缺失不报错）
+    data.verifyQueue = await readJSONFile('verify_queue.json').catch(() => null);
+    // 2026-10-10 公司身份真源：company_aliases.json（298 条 canonical→aliases）。
+    // 「同公司已投别的岗」的判定要用它 —— 此前只靠 companyCore 字符串相等，
+    // 认不出「趣加 FunPlus ↔ FunPlus」「吉比特／雷霆游戏 ↔ 雷霆游戏」这类别名，也未做括号安全归一。
+    const ca = await readJSONFile('company_aliases.json').catch(() => ({}));
+    data.companyAliases = (ca && ca.aliases) ? ca : { aliases: {} };
     } catch (e) {
       document.getElementById('connect-title').textContent = '读取数据失败';
       document.getElementById('connect-desc').textContent = '';
@@ -522,8 +756,15 @@
     renderApplied();
     renderPending();
     renderEnded();
+    renderExcluded();
     renderCalendar();
-    renderQuotas();
+    // renderQuotas();  // 2026-10-09 用户要求：站点额度不再单独成块展示，改在「已投递」公司条目内备注（原 quota-panel 区块已移除）
+    renderConsistency();
+    renderInflight();
+    renderMail();
+    renderTodos();
+    renderAssessment();
+    renderVq();
   }
 
   // ---------- categorization helpers ----------
@@ -604,17 +845,282 @@
   // 一百多笔，所以这里以台账为准，池内数字退到副标题里做参考。
   function ledgerRows() { return data.appLog || []; }
   function ledgerSubmitted() { return ledgerRows().filter(r => (r.status || '').trim() === 'Submitted'); }
+
+  // ---------- 「未投递」口径（2026-10-02 修）----------
+  // 池里的「未投递类」状态有 4 种写法，且曾因拼写不一致（'Needs user' vs 'NeedsUser'）而整类漏显示。
+  const PENDING_POOL_STATUS = ['Pending', 'NeedsUser', 'Needs user', 'ToApply', 'Backup'];
+  // 「已结束」= 一切终态。⚠️ 2026-10-02 核对发现原口径只算 Offer/Rejected，漏了 Terminated/Blocked 7 行
+  const ENDED_POOL_STATUS = ['Offer', 'Rejected', 'Terminated', 'Blocked'];
+  // 「已排除」= 主动跳过（Skipped）+ 不符合口径（NotFit）。
+  // ⚠️ 2026-10-05 审计 F 段抓出：这两类此前**两套口径都不覆盖** ⇒ 池内 65+9=74 行在看板上凭空消失，
+  //    首页 4 个磁贴加起来凑不出池内总行数，用户会误判"还有一堆没投"。
+  const EXCLUDED_POOL_STATUS = ['Skipped', 'NotFit'];
+  // 「同司已投」标记（2026-10-10 用户口径）：
+  //   「排除的如果是有投递同公司的不同岗位，则不计入排除名单」
+  //   ⇒ 这些行 status 仍是 Skipped / NotFit（事实不变：这个岗位确实没投），
+  //     但公司已有投递记录 ⇒ 机会没丢，**不计入「已排除」名单与磁贴计数**，改列在同一屏的下方分区。
+  //   标记写在 skip_reason 开头；名单来源 `_rule_same_company_tag.py`
+  //   （逐行与 application_log.csv 台账比对，保留具体已投岗位作为凭据）。
+  const SAME_COMPANY_TAG = '【同司已投·不计入排除】';
+  function isSameCompanyExcluded(r) {
+    return String((r && r.skip_reason) || '').indexOf(SAME_COMPANY_TAG) >= 0;
+  }
+
+  function pendingPoolRows() {
+    return (data.jobPool || []).filter(r => PENDING_POOL_STATUS.indexOf((r.status || '').trim()) >= 0);
+  }
+
+  // 岗位名分词：用于「池内待投」与「台账已投」的比对。
+  // ⚠️ 坑：不能把「校招」当噪声词无条件剥掉 —— 「运营**校招**生」会被切成「运营 生」，
+  //    导致本该命中的行被漏判（实测：唯品会「运营校招生」就因此漏过）。故用 `校招(?!生)`。
+  const TITLE_NOISE = /(2027届|2027|27届|校园招聘|校招(?!生)|全职|实习)/g;
+  function titleTokens(t) {
+    let s = String(t || '').toLowerCase();
+    s = s.replace(/[（(][^）)]*[）)]/g, ' ');
+    s = s.replace(/[【\[][^】\]]*[】\]]/g, ' ');
+    s = s.replace(TITLE_NOISE, ' ');
+    return s.split(/[\s\-—–_·、,，/／|｜;；:：]+/).map(x => x.trim()).filter(x => x.length >= 3);
+  }
+  // 两段标题是否有实质重叠 → 判定为「同一个岗位」
+  function titlesOverlap(a, b) {
+    const ta = titleTokens(a), tb = titleTokens(b);
+    for (let i = 0; i < ta.length; i++) {
+      for (let j = 0; j < tb.length; j++) {
+        const x = ta[i], y = tb[j];
+        if (x === y) return true;
+        if (x.length >= 4 && y.length >= 4 && (x.indexOf(y) >= 0 || y.indexOf(x) >= 0)) return true;
+      }
+    }
+    return false;
+  }
+  // 池内行是否"一个标题塞多个岗位"（汇总行）—— 整行改状态会漏掉行内其他机会
+  function isAggregateRow(title) { return /[\/／;；]/.test(String(title || '')); }
+
+  // ---------- 公司身份（2026-10-10 用户口径：同公司已投别的岗也必须被认出）----------
+  // 起因：用户下达「排除的如果是有投递同公司的不同岗位，则不计入排除名单」后核对发现，
+  //   本函数原先只做 `companyCore` 字符串相等 ⇒ 漏认两类公司：
+  //     ① 别名（台账写「趣加 FunPlus」，池子写「FunPlus」；台账写「吉比特 / 雷霆游戏」，池子写「雷霆游戏」）
+  //     ② 括号嵌套（`小红书（行吟信息科技(上海)有限公司）`：companyCore 只剥**尾部**括号，
+  //        且正则 `[^）)]*` 遇到内层 `(上海)` 就失配 ⇒ 原名原样留下，认不出池子的「小红书」）
+  // 真源 = company_aliases.json，规则照抄其 _rules：
+  //   **精确命中**，或**别名被完整包含且该项长度 ≥ 4**（命中多条时取**最长**＝最具体）；
+  //   🔴 禁止模糊前缀匹配（历史事故：「中国电子云」被前缀匹配到「中国电信」⇒ 误判已投）。
+  const INNER_PAREN_RX = /[（(][^（(）)]*[）)]/g;
+
+  // 平台前缀 + 反复剥最内层括号（嵌套安全）+ 去空白/括号字符
+  function normCompanyKey(s) {
+    let out = stripPlatformPrefix(s);
+    for (let i = 0; i < 6; i++) {
+      const nx = out.replace(INNER_PAREN_RX, '');
+      if (nx === out) break;
+      out = nx;
+    }
+    return out.replace(/[\s（）()]/g, '');
+  }
+
+  let _aliasVar2Canon = null;
+  function aliasVar2Canon() {
+    if (_aliasVar2Canon) return _aliasVar2Canon;
+    const m = new Map();
+    const al = (data.companyAliases && data.companyAliases.aliases) || {};
+    Object.keys(al).forEach(canon => {
+      const put = (k) => { const n = normCompanyKey(k); if (n && !m.has(n)) m.set(n, canon); };
+      put(canon);
+      const list = (al[canon] && al[canon].aliases) || [];
+      list.forEach(put);
+    });
+    _aliasVar2Canon = m;
+    return m;
+  }
+
+  function canonOfCompany(name) {
+    const n = normCompanyKey(name);
+    if (!n) return null;
+    const m = aliasVar2Canon();
+    if (m.has(n)) return m.get(n);
+    let bestVar = null;
+    m.forEach((canon, varName) => {
+      if (varName.length >= 4 && n.indexOf(varName) >= 0 && (!bestVar || varName.length > bestVar.length)) bestVar = varName;
+    });
+    return bestVar ? m.get(bestVar) : null;
+  }
+
+  // 一家公司可有多个身份键：canonical（别名表认得时）+ companyCore（旧口径，保留以不倒退）+ 括号安全全名
+  function companyKeys(name) {
+    const keys = [];
+    const c = canonOfCompany(name);
+    if (c) keys.push('canon:' + c);
+    const core = companyCore(name);
+    if (core) keys.push('core:' + core);
+    const ncore = normCompanyKey(name);
+    if (ncore) keys.push('ncore:' + ncore);
+    return keys;
+  }
+
+  // 台账按公司身份键建索引：一条台账行同时挂到它的每个键上（多键命中取并集）
+  let _ledgerIdx = null;
+  function ledgerIndex() {
+    if (_ledgerIdx) return _ledgerIdx;
+    const m = new Map();
+    ledgerRows().forEach(l => {
+      companyKeys(l.company).forEach(k => {
+        if (!m.has(k)) m.set(k, []);
+        if (m.get(k).indexOf(l) < 0) m.get(k).push(l);
+      });
+    });
+    _ledgerIdx = m;
+    return m;
+  }
+
+  // 核心名互相包含（两侧长度均 ≥ 4）：别名表没收录、但显系同一家的情形
+  //   例：「雷霆游戏」⊂「吉比特 / 雷霆游戏」、「深圳市睿联技术有限公司」↔「深圳市睿联技术股份有限公司」
+  // 🔴 两侧都必须 ≥ 4 字 —— 防止「银行」「科技」这类后缀被剥空后塌缩出的通用短词把不同公司并成一家。
+  //    规则与已落盘的「已排除」口径（_rule_same_company_tag.py）一致，两处必须同源同解。
+  let _containIdx = null;
+  let _containCache = null;
+  function ledgerByCoreContain(poolCompany) {
+    if (!_containCache) _containCache = new Map();
+    const ck = String(poolCompany || '');
+    if (_containCache.has(ck)) return _containCache.get(ck);
+    if (!_containIdx) {
+      _containIdx = new Map();
+      ledgerRows().forEach(l => {
+        [companyCore(l.company), normCompanyKey(l.company)].forEach(k => {
+          if (!k || k.length < 4) return;
+          if (!_containIdx.has(k)) _containIdx.set(k, []);
+          if (_containIdx.get(k).indexOf(l) < 0) _containIdx.get(k).push(l);
+        });
+      });
+    }
+    const out = [];
+    const mine = [companyCore(poolCompany), normCompanyKey(poolCompany)].filter(k => k && k.length >= 4);
+    mine.forEach(k => {
+      _containIdx.forEach((rows, lk) => {
+        if (lk.indexOf(k) >= 0 || k.indexOf(lk) >= 0) {
+          rows.forEach(l => { if (out.indexOf(l) < 0) out.push(l); });
+        }
+      });
+    });
+    _containCache.set(ck, out);
+    return out;
+  }
+
+  // 判定某条「待投」是否其实已投：
+  //   same    = 公司+岗位都对得上 → **确定已投**
+  //   company = 只有公司对得上   → 投过同公司别的岗（提示，不判定为已投）
+  //   null    = 台账里没这家公司 → 确实还没投
+  function ledgerMatchFor(poolRow) {
+    const cands = [];
+    companyKeys(poolRow.company).forEach(k => {
+      (ledgerIndex().get(k) || []).forEach(l => { if (cands.indexOf(l) < 0) cands.push(l); });
+    });
+    ledgerByCoreContain(poolRow.company).forEach(l => { if (cands.indexOf(l) < 0) cands.push(l); });
+    if (!cands.length) return null;
+    const same = cands.find(l => titlesOverlap(poolRow.job_title, l.job_title));
+    return same ? { kind: 'same', row: same } : { kind: 'company', row: cands[0] };
+  }
+
+  // 「确定已投」：池内状态还写着待投，但台账里同公司同岗位已有记录
+  function isAlreadyApplied(poolRow) {
+    const m = ledgerMatchFor(poolRow);
+    return !!(m && m.kind === 'same');
+  }
+
+  // ---------- URL 分类（2026-10-02 新增：复访清单用）----------
+  // 「记录页」= 平台侧能看投递状态/进度的页面 → 复核状态用它
+  // 「岗位页」= 具体职位详情页 → 回访岗位/再投用它
+  const RECORD_URL_RX = [
+    /nowcoder\.com\/users\/\d+\/deliver/,
+    /i\.51job\.com\/userset\/my_apply/,
+    /campus-talent\.alibaba\.com\/personal/,
+    /\.jobs\.feishu\.cn\/index\/position\/application/,
+    /jobs\.bytedance\.com\/campus\/position\/application/,
+    /chinatelecom\.com\.cn\/wt\/TELE\/web\/index/,
+    /mokahr\.com\/candidate\/applications\/deliver-query/,
+    /\.zhiye\.com\/personal\/deliveryRecord/,
+    /join\.qq\.com\/progress/,
+    /^https?:\/\/q\.yingjiesheng\.com\/?$/,
+  ];
+  function isRecordUrl(u) { return RECORD_URL_RX.some(rx => rx.test(String(u || ''))); }
+  // ⚠️ 判「可用」要区分尾斜杠：`/position/123/detail` 是完整的，`/detail/` 才是 ID 丢失
+  function isUsableUrl(u) {
+    u = String(u || '').trim();
+    if (!/^https?:\/\//i.test(u)) return false;
+    if (/\/(?:detail|job|jobs|position|positions|apply)\/+$/i.test(u)) return false;
+    return true;
+  }
+  function urlInfo(row) {
+    const cands = [row.job_url, row.confirmation_url]
+      .map(u => String(u || '').trim()).filter(Boolean).filter(isUsableUrl);
+    const uniq = Array.from(new Set(cands));
+    return {
+      has: uniq.length > 0,
+      jobUrl: uniq.find(u => !isRecordUrl(u)) || '',
+      recordUrl: uniq.find(isRecordUrl) || '',
+      all: uniq,
+    };
+  }
+
   function todayStr() {
     const d = new Date();
     const p = n => String(n).padStart(2, '0');
     return d.getFullYear() + '-' + p(d.getMonth() + 1) + '-' + p(d.getDate());
   }
 
-  function renderHome() {
+  function renderStagePanel() {
+  const el = document.getElementById('stage-panel');
+  if (!el) return;
+  const rows = ledgerRows();
+  const INFLIGHT = ['Submitted', 'Assessment', 'Interview', 'ApplicationUpdated', 'Offer'];
+  const ENDED = ['Rejected', 'Terminated', 'Blocked'];
+  const inF = rows.filter(r => INFLIGHT.indexOf((r.status || '').trim()) >= 0);
+  const ended = rows.filter(r => ENDED.indexOf((r.status || '').trim()) >= 0);
+  const tally = (arr, key) => {
+    const m = new Map();
+    arr.forEach(r => { const k = ((r[key] || '').trim()) || '未标注'; m.set(k, (m.get(k) || 0) + 1); });
+    return [...m.entries()].sort((a, b) => b[1] - a[1]);
+  };
+  const chip = (k, v, cls) => '<span class="chip ' + (cls || '') + '" style="margin:2px 6px 4px 0;display:inline-block">'
+    + esc(k) + ' <b>' + v + '</b></span>';
+  const inFList = tally(inF, 'stage_detail');
+  const endList = tally(ended, 'outcome_reason');
+  const sum = (a) => a.reduce((s, x) => s + x[1], 0);
+  const inFN = sum(inFList), endedN = sum(endList);
+  const nRej = ended.filter(r => (r.status || '').trim() === 'Rejected').length;
+  const nTerm = ended.filter(r => (r.status || '').trim() === 'Terminated').length;
+  const nBlk = ended.filter(r => (r.status || '').trim() === 'Blocked').length;
+  let h = '<div style="display:flex;flex-wrap:wrap;gap:16px">';
+  h += '<div style="flex:1 1 340px;min-width:300px"><div class="meta" style="margin-bottom:6px">在途 ' + inFN + ' 笔 · 按细分阶段</div>'
+    + (inFList.length ? inFList.map(x => chip(x[0], x[1], 'chip-good')).join('') : '<span class="meta">无</span>') + '</div>';
+  h += '<div style="flex:1 1 340px;min-width:300px"><div class="meta" style="margin-bottom:6px">已终止 ' + endedN
+    + ' 笔（被拒 ' + nRej + ' ｜ 流程终止 ' + nTerm + ' ｜ 被拦未投 ' + nBlk + '）· 按细分原因</div>'
+    + (endList.length ? endList.map(x => chip(x[0], x[1], 'chip-bad')).join('') : '<span class="meta">无</span>') + '</div>';
+  h += '</div>';
+  h += '<div class="meta" style="margin-top:8px">细分值来自台账列 <code>stage_detail</code>／<code>outcome_reason</code>；'
+    + '显示 <code>未标注</code> 表示该行尚未细分（可在台账中补齐）。</div>';
+  el.innerHTML = h;
+  const s2 = document.getElementById('stage-summary');
+  if (s2) s2.textContent = '在途 ' + inFN + ' ｜ 已终止 ' + endedN;
+}
+
+function renderHome() {
     const applied = data.jobPool.filter(r => r.status === 'Submitted');
-    const ended = data.jobPool.filter(r => r.status === 'Offer' || r.status === 'Rejected');
-    const pending = data.jobPool.filter(r => r.status === 'Pending' || r.status === 'Needs user');
+    // 「已结束」口径：Offer 之外，Rejected / Terminated / Blocked 也都是终态。
+    // 2026-10-02 全量核对发现：原先只算 Offer+Rejected，**漏掉池内 Terminated 6 + Blocked 1**。
+    const ended = data.jobPool.filter(r => ENDED_POOL_STATUS.indexOf((r.status || '').trim()) >= 0);
+    // 「已排除」口径（2026-10-05 新增）：主动跳过 + 不符合口径
+    // 2026-10-10 用户口径修正：同公司已有投递（别的岗位）的行**不计入**排除名单 ⇒ 拆两组
+    const excludedAll = data.jobPool.filter(r => EXCLUDED_POOL_STATUS.indexOf((r.status || '').trim()) >= 0);
+    const excluded = excludedAll.filter(r => !isSameCompanyExcluded(r));
+    const excludedSameCo = excludedAll.filter(isSameCompanyExcluded);
+    const pRows = pendingPoolRows();
+    // 磁贴口径必须与「未投递」视图主列表一致：
+    //   同岗位已投（same）与 同公司已投别的岗（company）都不算"还没投"
+    const pending = pRows.filter(r => !ledgerMatchFor(r));
+    const nSameJob = pRows.filter(r => { const m = ledgerMatchFor(r); return m && m.kind === 'same'; }).length;
+    const nSameCo = pRows.filter(r => { const m = ledgerMatchFor(r); return m && m.kind === 'company'; }).length;
     const ls = ledgerSubmitted();
+  renderStagePanel();
 
     document.getElementById('tile-applied').textContent = ls.length;
     const subEl = document.getElementById('tile-applied-sub');
@@ -623,14 +1129,750 @@
     const totalEl = document.getElementById('tile-ledger-total');
     if (totalEl) totalEl.textContent = ledgerRows().length;
 
-    const today = ledgerRows().filter(r => (r.attempt_date || '').trim() === todayStr());
+    // 投递节奏：不只报「今日」一个数字 —— 同时给近 7 日 / 累计，并按日列出近期分布。
+    // （2026-10-04 用户反馈：「今日 16」这个单一数字容易被误读成"只有今天投了 16 笔"，其实那是按投递日期归集的一整天。）
+    // 🔧 口径修正（2026-10-05）：台账**每一行就是一次投递**，状态推进（Submitted→Assessment/Interview/Rejected…）
+    //   不该把它从「投递节奏」里抹掉。此前只统计 status===Submitted ⇒ 君乐宝推进到 Assessment 后，
+    //   当日数从 1 变 0、累计从 313 掉到 312，属**少算**。改为「已投递过」的状态集合。
+    const SUBMITTED_LIKE = ['Submitted', 'Assessment', 'Interview', 'Rejected', 'Terminated', 'Blocked'];
+    const allSub = ledgerRows().filter(r => SUBMITTED_LIKE.indexOf((r.status || '').trim()) >= 0);
+    // 🔧 归集修正（2026-10-05 第108轮）：attempt_date 有两种写法 —— 纯日期 `2026-10-05`（约 40% 的行）
+    //   与「日期+时间」`2026-10-05 15:27`（按协议：站点给了时间戳就写时间戳）。
+    //   此前直接用原始字符串当 key ⇒ 同一天的带时间行被算成**另一天**：
+    //   当日数少算（10-05 实际 6 笔，只报 3 笔）、分布列表也被拆成 `10-05 15:27`/`10-05 15:09`/… 多行。
+    //   ⇒ 统一按**日期前缀（前 10 位）**归集与解析。
+    const dayKey = (s) => String(s || '').trim().slice(0, 10);
+    const byDate = new Map();
+    allSub.forEach(r => { const d = dayKey(r.attempt_date); if (d) byDate.set(d, (byDate.get(d) || 0) + 1); });
+    const dayCount = (days) => {
+      const lo = Date.now() - days * 86400000;
+      return allSub.filter(r => { const t = Date.parse(dayKey(r.attempt_date)); return isFinite(t) && t > lo; }).length;
+    };
+    const todayN = byDate.get(dayKey(todayStr())) || 0;
+    const recentDays = [...byDate.entries()].sort((a, b) => b[0].localeCompare(a[0])).slice(0, 6)
+      .map(kv => kv[0].slice(5) + '：' + kv[1]).join(' ｜ ');
     const todayEl = document.getElementById('tile-today');
-    if (todayEl) todayEl.textContent = today.filter(r => (r.status || '').trim() === 'Submitted').length;
+    if (todayEl) todayEl.textContent = todayN;
     const todaySub = document.getElementById('tile-today-sub');
-    if (todaySub) todaySub.textContent = todayStr() + ' · 共 ' + today.length + ' 次尝试';
+    if (todaySub) {
+      todaySub.innerHTML =
+        '今天是 <b>' + esc(todayStr()) + '</b>，当日 ' + todayN + ' 笔 ｜ 近 7 日 <b>' + dayCount(7) + '</b> 笔 ｜ 累计 <b>' + allSub.length + '</b> 笔'
+        + '<br><span style="opacity:.72">按投递日期分布：' + esc(recentDays || '（无）') + '</span>';
+    }
 
     document.getElementById('tile-pending').textContent = pending.length;
+    const pendSub = document.querySelector('.tile[data-view="pending"] .sub');
+    if (pendSub) {
+      pendSub.textContent = (nSameJob || nSameCo)
+        ? ('目标池里还没投 · 另有 ' + nSameJob + ' 条同岗位已投、' + nSameCo + ' 条同公司已投别的岗')
+        : '目标池里还没投的公司';
+    }
     document.getElementById('tile-ended').textContent = ended.length;
+    const exclEl = document.getElementById('tile-excluded');
+    if (exclEl) exclEl.textContent = excluded.length;
+    const exclSub = document.querySelector('.tile[data-view="excluded"] .sub');
+    if (exclSub) {
+      exclSub.textContent = excludedSameCo.length
+        ? ('主动跳过 / 不符合口径 · 另有 ' + excludedSameCo.length + ' 行同司已投（不计入）')
+        : '主动跳过 / 不符合口径';
+    }
+
+    const inflight = inflightRows();
+    const confident = inflight.filter(isConfident);
+    const unverified = inflight.length - confident.length;
+    const infEl = document.getElementById('tile-inflight');
+    if (infEl) infEl.textContent = confident.length;
+    const infSub = document.getElementById('tile-inflight-sub');
+    if (infSub) {
+      infSub.textContent = '已核对且在流程 · 另有 ' + unverified + ' 笔非终态但未核对';
+    }
+  }
+
+  // ---------- 在途 / 核对新鲜度 ----------
+  // 背景：台账里的 `Submitted` 只是"提交过"，**不代表还在流程里**。
+  // 2026-10-02 首周 32 家逐站实查证明：沐瞳 3 笔记 Submitted 实为终止、牛客 55 笔里 21 笔早已"不合适"、
+  // 甚至还有"假已投"（阿里超级智能体、字节 AI产品经理-数据平台 实际从未提交）⇒ 已把状态改对。
+  // 所以这里只认"非终态"的状态值，并把每笔的**站内核对日期**显出来，超期未核的标红。
+  const INFLIGHT_STATUS = ['Submitted', 'Assessment', 'Interview', 'Pending', 'ApplicationUpdated', 'Offer'];
+
+  function inflightRows() {
+    return ledgerRows().filter(r => INFLIGHT_STATUS.indexOf((r.status || '').trim()) >= 0);
+  }
+
+  // 从任意文本里找形如 【2026-10-02 站内实查…】 的**核对**标记，取最新日期。
+  // ⚠️ 不能只匹配 `【YYYY-MM-DD …】` —— 那种标记里也包含"投递当天写的备注"（如【2026-09-14 更新】），
+  // 会把"从未核对"的行误判成"已核对"。所以括号内必须出现核对类关键词才算数。
+  const VERIFY_RE = /【\s*(20\d{2}-\d{2}-\d{2})([^】]*)】/g;
+  const VERIFY_KW = ['实查', '站内核对', '站内', '扫描', '回访', '复核', '审计', 'deliver-query', '邮箱', '查询页'];
+  // 权威来源：台账每行首部的【状态断言：<label> ｜ 已核对 YYYY-MM-DD】
+  const ASSERT_VERIFIED_RE = /^【状态断言：[^｜】]+｜[^】]*已核对\s*(20\d{2}-\d{2}-\d{2})/;
+  function latestVerified(row) {
+    const notes = String(row.notes || '');
+    const am = ASSERT_VERIFIED_RE.exec(notes);
+    if (am) return am[1];
+    const blob = [row.notes, row.submission_evidence, row.confirmation_text, row.answers_used]
+      .filter(Boolean).join(' ｜ ');
+    let m, best = null;
+    VERIFY_RE.lastIndex = 0;
+    while ((m = VERIFY_RE.exec(blob)) !== null) {
+      const inside = m[2] || '';
+      // ⚠️ 「URL 核对 / 额度核对」不是状态核对，排除（否则会虚增"已核对"）
+      if (inside.indexOf('URL') >= 0 || inside.indexOf('额度') >= 0) continue;
+      if (!VERIFY_KW.some(k => inside.indexOf(k) >= 0)) continue;
+      if (!best || m[1] > best) best = m[1];
+    }
+    return best;
+  }
+
+  function dateDiffDays(fromStr, toStr) {
+    // 🔧 2026-10-05 第108轮：attempt_date / 核对日期可能是「日期+时间」（如 `2026-10-05 15:27`），
+    //   直接拼 'T00:00:00' 会得到非法日期 ⇒ 旧写法对这类行一律返回 null（天数显示为空白）。
+    //   统一先截前 10 位（纯日期）再解析。
+    const norm = (s) => String(s == null ? '' : s).trim().slice(0, 10);
+    const a = new Date(norm(fromStr) + 'T00:00:00'), b = new Date(norm(toStr) + 'T00:00:00');
+    if (isNaN(a) || isNaN(b)) return null;
+    return Math.round((b - a) / 86400000);
+  }
+
+  // 2026-10-10 新增：渠道本身没有"投递记录页"的行（如钉钉共享表单），状态**技术上无法核对**，
+  // 不能算"待核对"，也不能算"已核对" ⇒ 单独标为 na（不可核对），从待核对口径里豁免。
+  const VERIFY_NA_RE = /【[^】]*(不可核对|无投递记录页|无站内记录页|无记录页)[^】]*】/;
+  function isVerifyNA(row) {
+    return VERIFY_NA_RE.test(String(row.notes || '')) || VERIFY_NA_RE.test(String(row.submission_evidence || ''));
+  }
+
+  // 核对新鲜度：只有"确实核对过"的行才有日期；>21 天未核 = stale（与 STARTUP.md 第 19 条对齐）
+  function freshnessOf(row) {
+    if (isVerifyNA(row)) return { date: null, days: null, level: 'na', text: '不可核对（渠道无记录页）' };
+    const v = latestVerified(row);
+    if (!v) return { date: null, days: null, level: 'never', text: '从未站内核对' };
+    const d = dateDiffDays(v, todayStr());
+    if (d === null) return { date: v, days: null, level: 'never', text: '核对日期异常' };
+    const level = d > 21 ? 'stale' : (d > 7 ? 'aging' : 'fresh');
+    return {
+      date: v, days: d, level,
+      text: d === 0 ? ('今日已核（' + v + '）') : ('上次核对 ' + d + ' 天前（' + v + '）'),
+    };
+  }
+
+  // 是否"核对过且在有效期内" —— 只有这种行才能说"确认还在流程里"（na 视同已处理，不再催核对）
+  function isConfident(row) {
+    const lv = freshnessOf(row).level;
+    return lv === 'fresh' || lv === 'aging' || lv === 'na';
+  }
+
+  function elapsedDays(row) {
+    const d = dateDiffDays((row.attempt_date || '').trim(), todayStr());
+    return d === null ? null : d;
+  }
+
+  const FRESH_CLS = { fresh: 'chip-good', aging: 'chip-warn', stale: 'chip-bad', never: 'chip-bad' };
+
+  // ══════════════════════════════════════════════════════════════════════
+  // 书页式版式共用件（2026-10-09）
+  // 目的：「在途 / 未投递 / 已结束」三屏与「已投递」用**完全同一套**版式 ——
+  //   公司分组卡（.card.company-group → .positions → .position-row → .pos-detail）
+  //   + 顶部 .book-ribbon 书签条 + 底部 sticky .pager.book-pager 书页翻页（每页 8 家公司）。
+  // 这些函数只是把 renderApplied() 里那套结构/类名/交互**抽出来复用**，不另造一套；
+  // 文案也与「已投递」逐字一致（第 X / Y 页、本页 N 家 ｜ 全部 M 家 · K 个岗位（按公司合并）、← → 键可翻页）。
+  // ══════════════════════════════════════════════════════════════════════
+  const BOOK_PER_PAGE = 8;
+
+  // 按「实际公司」分组（companyCore 归一；variants 记原始写法，用于 displayName）
+  function bookGroupRows(rows) {
+    const groups = new Map();
+    rows.forEach(r => {
+      const core = companyCore(r.company);
+      if (!groups.has(core)) groups.set(core, { core, variants: new Set(), rows: [] });
+      const g = groups.get(core);
+      g.variants.add(stripPlatformPrefix((r.company || '').trim()));
+      g.rows.push(r);
+    });
+    return [...groups.values()];
+  }
+
+  // 书页顶部书签条：本页范围 + 翻页提示
+  function bookRibbonEl(pageNo, totalPages, pageGroups, totalGroups, totalJobs) {
+    const ribbon = document.createElement('div');
+    ribbon.className = 'book-ribbon';
+    ribbon.innerHTML =
+      '<span class="r-page">第 ' + pageNo + ' / ' + totalPages + ' 页</span>'
+      + '<span>本页 ' + pageGroups + ' 家 ｜ 全部 ' + esc(String(totalGroups)) + ' 家 · ' + esc(String(totalJobs)) + ' 个岗位'
+      + (totalGroups ? '（按公司合并）' : '') + '</span>'
+      + '<span class="r-hint">← → 键可翻页</span>';
+    return ribbon;
+  }
+
+  // 底部 sticky 翻页器（‹ 上一页 / 页码 / 下一页 ›），只有多于一页时才出现
+  function bookPagerEl(totalPages, pageNo, listEl, pageState, redraw) {
+    if (totalPages <= 1) return null;
+    const pager = document.createElement('div');
+    pager.className = 'pager book-pager';
+    pager.dataset.listId = listEl.id;   // 标记这个翻页器属于哪个列表（便于排查）
+    const mk = (label, target, opts) => {
+      opts = opts || {};
+      const b = document.createElement('button');
+      b.type = 'button';
+      b.className = 'page-btn' + (opts.active ? ' active' : '') + (opts.disabled ? ' disabled' : '');
+      b.dataset.page = String(target);
+      b.textContent = label;
+      if (opts.disabled) b.disabled = true;
+      else b.addEventListener('click', () => {
+        pageState.page = target;
+        redraw();
+        listEl.scrollIntoView({ behavior: 'smooth', block: 'start' });
+      });
+      return b;
+    };
+    pager.appendChild(mk('‹ 上一页', pageNo - 1, { disabled: pageNo <= 1 }));
+    const nums = new Set([1, totalPages, pageNo - 2, pageNo - 1, pageNo, pageNo + 1, pageNo + 2]);
+    const sorted = [...nums].filter(n => n >= 1 && n <= totalPages).sort((a, b) => a - b);
+    let prevN = 0;
+    sorted.forEach(n => {
+      if (prevN && n - prevN > 1) {
+        const gap = document.createElement('span');
+        gap.className = 'page-gap';
+        gap.textContent = '…';
+        pager.appendChild(gap);
+      }
+      pager.appendChild(mk(String(n), n, { active: n === pageNo }));
+      prevN = n;
+    });
+    pager.appendChild(mk('下一页 ›', pageNo + 1, { disabled: pageNo >= totalPages }));
+    const jump = document.createElement('span');
+    jump.className = 'page-jump';
+    jump.textContent = '共 ' + totalPages + ' 页';
+    pager.appendChild(jump);
+    return pager;
+  }
+
+  // ← → 键翻页（书页手感）。每个视图只绑一次；只在本视图可见时生效，且不干扰输入框。
+  // 翻页器带 data-list-id ⇒ 只会驱动「同一个列表」里的按钮，不会串到同屏的另一个列表。
+  function bookBindKeys(viewId, flagKey) {
+    if (window[flagKey]) return;
+    window[flagKey] = true;
+    document.addEventListener('keydown', (e) => {
+      const v = document.getElementById(viewId);
+      if (!v || v.classList.contains('hidden')) return;
+      const tag = (e.target && e.target.tagName) || '';
+      if (tag === 'INPUT' || tag === 'SELECT' || tag === 'TEXTAREA') return;
+      const cur = v.querySelector('.page-btn.active');
+      if (!cur) return;
+      const p = Number(cur.dataset.page);
+      if (!isFinite(p)) return;
+      const want = e.key === 'ArrowLeft' ? (p - 1) : (e.key === 'ArrowRight' ? (p + 1) : 0);
+      if (!want) return;
+      const owner = cur.closest('.book-pager');   // 只在「同一个翻页器」里找目标页码
+      if (!owner) return;
+      const target = owner.querySelector('.page-btn[data-page="' + want + '"]');
+      if (target && !target.disabled) { target.click(); e.preventDefault(); }
+    });
+  }
+
+  // 一张公司分组卡：card-top（公司名 + N 个岗位 / 副标题 / chips / 右侧摘要 + 展开箭头）+ 内嵌 .positions
+  // opts: { sub, chips, right, rowEl(row) }
+  function bookGroupCard(g, opts) {
+    const group = document.createElement('div');
+    group.className = 'card company-group';
+    group.innerHTML = `
+      <div class="card-top">
+        <div>
+          <div class="card-title">${esc(g.name)}<span class="count-badge">${g.rows.length} 个岗位</span></div>
+          <div class="card-sub">${opts.sub || ''}</div>
+          <div class="tags">${opts.chips || ''}</div>
+        </div>
+        <div class="card-right">${opts.right || ''}<br><span class="chev">▸ 展开</span></div>
+      </div>
+      <div class="positions"></div>`;
+
+    const posWrap = group.querySelector('.positions');
+    g.rows.forEach(r => posWrap.appendChild(opts.rowEl(r)));
+
+    // 点公司头部（或右侧）展开该公司的岗位列表
+    group.querySelector('.card-top').addEventListener('click', (e) => {
+      if (e.target.tagName === 'A') return;
+      group.classList.toggle('open');
+      const chev = group.querySelector('.chev');
+      if (chev) chev.textContent = group.classList.contains('open') ? '▾ 收起' : '▸ 展开';
+    });
+    return group;
+  }
+
+  // 一行岗位：.pos-head（岗位名 + 右侧摘要）点击展开 .pos-detail（dt/dd 明细，按钮也放在这里）
+  function bookPositionRow(titleHtml, metaHtml, detailHtml) {
+    const row = document.createElement('div');
+    row.className = 'position-row';
+    row.innerHTML = '<div class="pos-head"><div class="pos-title">' + titleHtml + '</div>'
+      + '<div class="pos-meta">' + metaHtml + '</div></div>'
+      + '<div class="pos-detail">' + detailHtml + '</div>';
+    const head = row.querySelector('.pos-head');
+    const detail = row.querySelector('.pos-detail');
+    head.addEventListener('click', (e) => {
+      e.stopPropagation();               // 不要触发公司卡片的整体折叠
+      row.classList.toggle('open');
+      detail.style.display = row.classList.contains('open') ? 'block' : 'none';
+    });
+    return row;
+  }
+
+  // 书页式渲染一个列表：公司分组 + 每页 BOOK_PER_PAGE 家 + 顶部书签条 + 底部翻页器
+  // opts: { emptyText, prepare(g)?, sortGroups(glist)?, cardOf(g), redraw() }
+  function bookList(listEl, rows, pageState, opts) {
+    listEl.innerHTML = '';
+    if (!rows.length) { listEl.innerHTML = '<div class="empty">' + esc(opts.emptyText) + '</div>'; return; }
+
+    const glist = bookGroupRows(rows);
+    glist.forEach(g => {
+      g.name = displayName(g.variants);
+      if (opts.prepare) opts.prepare(g);
+    });
+    if (opts.sortGroups) opts.sortGroups(glist);
+
+    const totalGroups = glist.length;
+    const totalJobs = rows.length;
+    const totalPages = Math.max(1, Math.ceil(totalGroups / BOOK_PER_PAGE));
+    if (pageState.page > totalPages) pageState.page = totalPages;
+    if (pageState.page < 1) pageState.page = 1;
+    const from = (pageState.page - 1) * BOOK_PER_PAGE;
+    const pageGroups = glist.slice(from, from + BOOK_PER_PAGE);
+
+    listEl.appendChild(bookRibbonEl(pageState.page, totalPages, pageGroups.length, totalGroups, totalJobs));
+    pageGroups.forEach(g => listEl.appendChild(opts.cardOf(g)));
+
+    const pager = bookPagerEl(totalPages, pageState.page, listEl, pageState, opts.redraw);
+    if (pager) listEl.appendChild(pager);
+  }
+
+  function renderInflight() {
+    const listEl = document.getElementById('inflight-list');
+    const sumEl = document.getElementById('inflight-summary');
+    if (!listEl) return;
+    const statusSel = document.getElementById('inflight-filter-status');
+    const freshSel = document.getElementById('inflight-filter-fresh');
+    const search = document.getElementById('inflight-search');
+
+    let rows = inflightRows().slice();
+    rows.forEach(r => { r.__fresh = freshnessOf(r); r.__elapsed = elapsedDays(r); r.__url = urlInfo(r); });
+
+    if (statusSel && statusSel.options.length <= 1) {
+      [...new Set(rows.map(r => (r.status || '').trim()))].sort()
+        .forEach(s => { const o = document.createElement('option'); o.value = s; o.textContent = s; statusSel.appendChild(o); });
+    }
+
+    const total = rows.length;
+    const naN = rows.filter(isVerifyNA).length;              // 渠道无记录页、技术上不可核对
+    const confidentN = rows.filter(isConfident).length - naN; // 真正核对过的（不含 na）
+    const unverifiedN = total - rows.filter(isConfident).length;
+    const linkedN = rows.filter(r => r.__url && r.__url.has).length;
+
+    const s = (statusSel && statusSel.value) || '';
+    const f = (freshSel && freshSel.value) || '';
+    const q = ((search && search.value) || '').trim().toLowerCase();
+    if (s) rows = rows.filter(r => (r.status || '').trim() === s);
+    if (f === 'confident') rows = rows.filter(isConfident);
+    if (f === 'unverified') rows = rows.filter(r => !isConfident(r));
+    if (f === 'linked') rows = rows.filter(r => r.__url && r.__url.has);
+    if (q) rows = rows.filter(r => (String(r.company || '') + String(r.job_title || '')).toLowerCase().indexOf(q) >= 0);
+
+    // 已核对的排前面（按等待天数降序），待核对的排后面
+    rows.sort((a, b) => {
+      const ca = isConfident(a) ? 0 : 1, cb = isConfident(b) ? 0 : 1;
+      if (ca !== cb) return ca - cb;
+      return (b.__elapsed === null ? -1 : b.__elapsed) - (a.__elapsed === null ? -1 : a.__elapsed);
+    });
+
+    if (sumEl) {
+      sumEl.innerHTML = '状态非终态共 <b>' + total + '</b> 笔 ｜ 其中 <b>' + confidentN + '</b> 笔<b>已核对过</b>'
+        + '（才有证据说"还在流程"）｜ <b>' + unverifiedN + '</b> 笔<b>从未/超期未核</b>（状态只是没被改掉，不等于还活着）'
+        + (naN ? '｜ <b>' + naN + '</b> 笔<b>不可核对</b>（渠道无投递记录页，已豁免）' : '')
+        + '｜其中 <b>' + linkedN + '</b> 笔<b>有可用链接</b>（可直接点开复访）'
+        + '｜当前筛选后 <b>' + rows.length + '</b> 笔。'
+        + '<br><span class="meta">每张卡片有两个按钮：<b>打开岗位页</b>（职位详情）与 <b>打开记录页</b>'
+        + '（平台侧投递状态页 —— 复核状态用它）。无链接的多为平台直投/回捞行（如 51job 代投），'
+        + '其状态只能去对应平台记录页查。右上「复制链接清单」把当前筛选结果按制表符导出，可直接粘进表格。</span>';
+    }
+
+    // ── 书页式版式：公司分组卡 + 每页 8 家（与「已投递」完全同一套）──
+    const pageState = { page: 1 };
+
+    // 一行在途记录 → .position-row：状态/核对/天数/平台/链接/证据全部搬进 .pos-detail
+    function inflightPosEl(r) {
+      const fr = r.__fresh;
+      const el = r.__elapsed;
+      const ok = isConfident(r);
+      const na = isVerifyNA(r);
+      const cls = na ? 'chip-info' : (ok ? 'chip-good' : 'chip-warn');
+      const tag = na ? '🚫 不可核对' : (ok ? '✅ 已核对' : '⚠️ 待核对');
+      const warn = na
+        ? '<div class="inflight-note">该笔通过渠道无"投递记录页"（如钉钉共享表单），状态技术上无法核对；已按 2026-10-10 口径豁免，后续以邮件/短信为准。</div>'
+        : (ok
+        ? (fr.level === 'aging' ? '<div class="inflight-note">该笔上次核对已 ' + fr.days + ' 天前，建议本周内复核一次</div>' : '')
+        : '<div class="inflight-warn">⚠️ 该笔状态为「' + esc((r.status || '').trim()) + '」，但没有任何站内/邮箱核对记录 —— '
+          + '按 STARTUP 第 19 条应回站内实查；台账里的"未终止"不等于"还活着"</div>');
+      const u = r.__url || urlInfo(r);
+      const urlHtml = u.has
+        ? '<div class="url-row">'
+          + (u.jobUrl ? '<a class="btn btn-inline" href="' + esc(u.jobUrl) + '" target="_blank" rel="noopener">打开岗位页 ↗</a>' : '')
+          + (u.recordUrl ? '<a class="btn btn-inline" href="' + esc(u.recordUrl) + '" target="_blank" rel="noopener">打开记录页 ↗</a>' : '')
+          + '</div>'
+        : '<span class="chip chip-warn">无可用链接（平台直投/回捞行）</span>';
+      const detail =
+        '<div class="tags">'
+        + '<span class="chip chip-info">' + esc((r.status || '').trim()) + '</span>'
+        + (r.stage_detail ? '<span class="chip chip-good">' + esc(String(r.stage_detail).trim()) + '</span>' : '')
+        + '<span class="chip ' + cls + '">' + tag + '</span>'
+        + '</div>'
+        + '<dt>投递日</dt><dd>' + esc((r.attempt_date || '').trim() || '—') + '</dd>'
+        + '<dt>已等</dt><dd>' + (el === null ? '—' : el + ' 天') + '</dd>'
+        + '<dt>核对</dt><dd>' + esc(fr.text) + '</dd>'
+        + '<dt>平台</dt><dd>' + esc((r.platform || '').trim() || '—') + '</dd>'
+        + '<dt>链接</dt><dd>' + urlHtml + '</dd>'
+        + warn
+        + (r.submission_evidence ? '<dt>提交证据</dt><dd>' + escMultiline(r.submission_evidence) + '</dd>' : '');
+      return bookPositionRow(
+        esc(r.job_title || ''),
+        esc((r.attempt_date || '').trim() || '—') + (el === null ? '' : ' · 已等 ' + el + ' 天'),
+        detail);
+    }
+
+    function draw() {
+      bookList(listEl, rows, pageState, {
+        emptyText: '没有匹配的在途记录',
+        prepare: (g) => {
+          // 组内顺序沿用原列表口径：已核对的在前（等待天数降序），待核对的在后
+          g.rows.sort((a, b) => {
+            const ca = isConfident(a) ? 0 : 1, cb = isConfident(b) ? 0 : 1;
+            if (ca !== cb) return ca - cb;
+            return (b.__elapsed === null ? -1 : b.__elapsed) - (a.__elapsed === null ? -1 : a.__elapsed);
+          });
+          g.latest = g.rows.map(r => (r.attempt_date || '').trim()).filter(Boolean).sort().pop() || '';
+          g.cats = [...new Set(g.rows.map(category))];
+          g.statuses = [...new Set(g.rows.map(r => (r.status || '').trim()).filter(Boolean))];
+          g.unverified = g.rows.filter(r => !isConfident(r)).length;
+        },
+        sortGroups: (gl) => gl.sort((a, b) => (b.latest || '').localeCompare(a.latest || '')),
+        cardOf: (g) => bookGroupCard(g, {
+          sub: g.variants.size > 1
+            ? esc('合并 ' + g.variants.size + ' 种记录写法')
+            : esc(currentStage(g.rows[0])),
+          chips: g.cats.map(c => '<span class="chip ' + catChipClass(c) + '">' + esc(c) + '</span>').join('')
+            + g.statuses.map(st => '<span class="chip chip-info">' + esc(st) + '</span>').join('')
+            + (g.unverified
+              ? '<span class="chip chip-warn">⚠️ ' + (g.unverified === g.rows.length ? '待核对' : g.unverified + ' 笔待核对') + '</span>'
+              : '<span class="chip chip-good">✅ 已核对</span>'),
+          right: '最新 ' + esc(g.latest || '—'),
+          rowEl: inflightPosEl,
+        }),
+        redraw: () => draw(),
+      });
+    }
+
+    bookBindKeys('inflight-view', '__inflightBookKeysBound');
+    draw();
+  }
+
+  // ---------- 待核对队列（verify_queue.json，由 _build_verify_queue.py 生成） ----------
+  function renderVq() {
+    const panel = document.getElementById('vq-panel');
+    const sumEl = document.getElementById('vq-summary');
+    const noteEl = document.getElementById('vq-note');
+    if (!panel) return;
+    const q = data.verifyQueue;
+    if (!q || !q.counts) {
+      panel.innerHTML = '<div class="empty">verify_queue.json 尚无数据 —— 运行 '
+        + '<code>python -X utf8 _build_verify_queue.py</code> 生成</div>';
+      if (noteEl) noteEl.textContent = '';
+      return;
+    }
+    const c = q.counts;
+    if (sumEl) sumEl.textContent = c.total + ' 笔 / ' + c.sites + ' 站点 · 可自动核 ' + c.auto_checkable;
+
+    if (noteEl) {
+      noteEl.innerHTML = '判定口径：<b>状态非终态</b>且「从未核对」或「核对 &gt; ' + q.threshold_days + ' 天」的行，'
+        + '按<b>站点分组</b>（一次访问覆盖多行）。生成于 ' + esc(q.generated_at || '') + '。'
+        + '<br>✅ <b>可自动核 ' + c.auto_checkable + ' 笔</b>（免登录查询页 / 会话通常有效） '
+        + '｜ ⚠️ <b>需登录或另摸入口 ' + c.need_login_or_dig + ' 笔</b>。'
+        + '<br><span class="meta">Moka 系站点可用 <code>app.mokahr.com/candidate/applications/deliver-query/&lt;租户&gt;</code> '
+        + '<b>免登录</b>读取；但实测部分租户会返回「您访问的公司未开通此服务」或要求手机号+验证码认证。</span>';
+    }
+
+    const top = (q.sites || []).slice(0, 14);
+    panel.innerHTML = '<table class="quota-table"><thead><tr><th>站点</th><th>待核</th><th>核对方式</th><th>入口</th></tr></thead><tbody>'
+      + top.map(s => `<tr>
+          <td class="q-company">${esc(s.label)}</td>
+          <td class="q-num"><span class="chip ${s.auto ? 'chip-warn' : 'chip-bad'}">${s.count}${s.never ? ' · ' + s.never + ' 从未' : ''}</span></td>
+          <td class="q-note">${esc(s.method || '')}</td>
+          <td class="q-note">${s.url ? '<a href="' + esc(s.url) + '" target="_blank" rel="noopener">打开 →</a>' : '—'}</td>
+        </tr>`).join('')
+      + '</tbody></table>'
+      + (q.sites && q.sites.length > top.length
+        ? '<div class="quota-more"><span class="meta">另有 ' + (q.sites.length - top.length) + ' 个站点未列出，详见 verify_queue.json</span></div>'
+        : '');
+  }
+
+  // 复制当前筛选出的链接清单（制表符分隔，可直接粘进表格/笔记）
+  function copyInflightList() {
+    const f = (document.getElementById('inflight-filter-fresh') || {}).value || '';
+    const s = (document.getElementById('inflight-filter-status') || {}).value || '';
+    const q = ((document.getElementById('inflight-search') || {}).value || '').trim().toLowerCase();
+    let rows = inflightRows().slice();
+    rows.forEach(r => { r.__url = urlInfo(r); r.__elapsed = elapsedDays(r); });
+    if (s) rows = rows.filter(r => (r.status || '').trim() === s);
+    if (f === 'confident') rows = rows.filter(isConfident);
+    if (f === 'unverified') rows = rows.filter(r => !isConfident(r));
+    if (f === 'linked') rows = rows.filter(r => r.__url.has);
+    if (q) rows = rows.filter(r => (String(r.company || '') + String(r.job_title || '')).toLowerCase().indexOf(q) >= 0);
+    rows.sort((a, b) => (b.__elapsed === null ? -1 : b.__elapsed) - (a.__elapsed === null ? -1 : a.__elapsed));
+
+    const lines = ['公司\t岗位\t状态\t已等天数\t上次核对\t链接'];
+    rows.forEach(r => {
+      const u = r.__url;
+      lines.push([r.company || '', r.job_title || '', (r.status || '').trim(),
+                  r.__elapsed === null ? '' : r.__elapsed,
+                  freshnessOf(r).text,
+                  u.recordUrl || u.jobUrl || '（无可用链接）'].join('\t'));
+    });
+    const text = lines.join('\n');
+    const done = () => alert('已复制 ' + (lines.length - 1) + ' 行到剪贴板');
+    if (navigator.clipboard && navigator.clipboard.writeText) {
+      navigator.clipboard.writeText(text).then(done).catch(() => fallbackCopy(text, done));
+    } else fallbackCopy(text, done);
+  }
+  function fallbackCopy(text, done) {
+    const ta = document.createElement('textarea');
+    ta.value = text; ta.style.position = 'fixed'; ta.style.opacity = '0';
+    document.body.appendChild(ta); ta.select();
+    try { document.execCommand('copy'); done(); } catch (e) { alert('复制失败，请手动选择文本'); }
+    document.body.removeChild(ta);
+  }
+
+  // ---------- 邮箱动态 ----------
+  const MAIL_TAG_LABEL = {
+    reject_hard: '拒信', reject_soft: '软拒·人才库', reject_test: '测评/笔试未过',
+    invite: '邀约（测评/笔试/面试）', confirm: '投递确认', promo: '推广', other: '其他',
+    // 2026-10-09 补：mailbox.json 里实际还用了一个未映射的 tag，之前会原样显示英文。
+    // 标签与 invite 区分开，避免统计行里出现两个同名标签。
+    assessment_invite: '邀约·测评/笔试',
+  };
+  const MAIL_TAG_CLS = {
+    reject_hard: 'chip-bad', reject_soft: 'chip-bad', reject_test: 'chip-bad',
+    invite: 'chip-good', confirm: 'chip-good', promo: 'chip-warn', other: 'chip-warn',
+    assessment_invite: 'chip-good',
+  };
+
+  function renderMail() {
+    const homeList = document.getElementById('mail-home-list');
+    const sumEl = document.getElementById('mail-summary');
+    const homeSum = document.getElementById('mail-home-summary');
+    // 2026-10-09 修复：mailbox.json 的 items 是按时间**正序**写入的（8-26 → 10-05 递增），
+    // 直接渲染会变成"最旧的排在最前"，首页「邮箱动态」前 4 条也取到了 8 月的旧邮件。
+    // ⇒ 这里统一按 date 倒序（新→旧），同日期保持文件内原相对顺序（sort 稳定）。
+    const items = (data.mailbox || []).slice().sort((a, b) =>
+      String(b.date || '').localeCompare(String(a.date || '')));
+    const meta = data.mailboxMeta || {};
+
+    const counts = {};
+    items.forEach(m => { counts[m.tag] = (counts[m.tag] || 0) + 1; });
+    const summaryText = Object.keys(MAIL_TAG_LABEL)
+      .filter(k => counts[k])
+      .map(k => MAIL_TAG_LABEL[k] + ' ' + counts[k]).join(' · ');
+
+    if (homeSum) homeSum.textContent = items.length ? (items.length + ' 条 · ' + summaryText) : 'mailbox.json 暂无数据';
+    if (homeList) {
+      homeList.innerHTML = items.length
+        ? items.slice(0, 4).map(mailRowHtml).join('')
+        : '<div class="empty">mailbox.json 还没有内容（由 Agent 的邮箱扫描写入）</div>';
+    }
+    if (sumEl) {
+      sumEl.innerHTML = '共 <b>' + items.length + '</b> 条 ｜ ' + esc(summaryText)
+        + (meta.updated_at ? ' ｜ 更新于 ' + esc(meta.updated_at) : '')
+        + '<br><span class="meta">数据来源：' + esc(meta.source || 'QQ 邮箱语义扫描')
+        + '。⚠️ 语义经逐封读正文判定 —— 主题「感谢你…」可能是拒信，「应聘反馈」可能是软拒。</span>';
+    }
+
+    const tagSel = document.getElementById('mail-filter-tag');
+    const search = document.getElementById('mail-search');
+    const listEl = document.getElementById('mail-list');
+    if (!listEl) return;
+    if (tagSel && tagSel.options.length <= 1) {
+      Object.keys(MAIL_TAG_LABEL).filter(k => counts[k]).forEach(k => {
+        const o = document.createElement('option'); o.value = k; o.textContent = MAIL_TAG_LABEL[k] + '（' + counts[k] + '）';
+        tagSel.appendChild(o);
+      });
+    }
+    let rows = items;
+    const t = (tagSel && tagSel.value) || '';
+    const q = ((search && search.value) || '').trim().toLowerCase();
+    if (t) rows = rows.filter(m => m.tag === t);
+    if (q) rows = rows.filter(m => ((m.company || '') + (m.subject || '') + (m.note || '')).toLowerCase().indexOf(q) >= 0);
+    listEl.innerHTML = rows.length ? rows.map(mailRowHtml).join('') : '<div class="empty">没有匹配的邮件</div>';
+  }
+
+  function mailRowHtml(m) {
+    return `<div class="card">
+      <div class="card-top">
+        <div>
+          <div class="card-title">${esc(m.company || m.from || '')}</div>
+          <div class="card-sub">${esc(m.subject || '')}</div>
+        </div>
+        <div class="card-right">
+          <span class="chip ${MAIL_TAG_CLS[m.tag] || 'chip-warn'}">${esc(MAIL_TAG_LABEL[m.tag] || m.tag || '')}</span>
+          <span class="chip">${esc(m.date || '')}</span>
+        </div>
+      </div>
+      ${m.note ? `<div class="card-body">${esc(m.note)}</div>` : ''}
+    </div>`;
+  }
+
+  // ---------- 待办事项（todos.json，勾选=完成） ----------
+  let todoShowDone = false;
+  const TODO_CAT_CLS = { '测评': 'chip-warning', '面试': 'chip-cat1', '材料': 'chip-good', '核对': '', '台账': '' };
+
+  function todoDueInfo(due) {
+    if (!due) return { text: '无截止', cls: '' };
+    const m = /^(\d{4}-\d{2}-\d{2})(?:[ T](\d{2}:\d{2}))?/.exec(String(due));
+    if (!m) return { text: String(due), cls: '' };
+    const target = new Date(m[1] + 'T' + (m[2] || '23:59') + ':00');
+    const now = new Date();
+    const days = (target - now) / 86400000;
+    if (isNaN(days)) return { text: String(due), cls: '' };
+    const label = m[1].slice(5) + (m[2] ? (' ' + m[2]) : '');
+    if (days < 0) return { text: '已过期 ' + label, cls: 'chip-bad' };
+    if (days < 1) return { text: '今天 ' + label, cls: 'chip-bad' };
+    if (days < 2) return { text: '1 天内 · ' + label, cls: 'chip-bad' };
+    if (days < 7) return { text: Math.floor(days) + ' 天内 · ' + label, cls: 'chip-warn' };
+    return { text: label, cls: '' };
+  }
+
+  function renderTodos() {
+    const listEl = document.getElementById('todo-list');
+    const sumEl = document.getElementById('todo-summary');
+    if (!listEl) return;
+    const items = (data.todos || []).slice();
+    const open = items.filter(x => !x.done);
+    const doneN = items.length - open.length;
+
+    // 未完成按截止时间升序（无截止排最后），已完成按完成时间倒序
+    const keyOf = x => { const m = /^(\d{4}-\d{2}-\d{2})(?:[ T](\d{2}:\d{2}))?/.exec(String(x.due || '')); return m ? (m[1] + ' ' + (m[2] || '23:59')) : '9999-99-99'; };
+    open.sort((a, b) => keyOf(a).localeCompare(keyOf(b)));
+    const done = items.filter(x => x.done).sort((a, b) => String(b.done_at || '').localeCompare(String(a.done_at || '')));
+
+    if (sumEl) {
+      const urgent = open.filter(x => { const i = todoDueInfo(x.due); return i.cls === 'chip-bad' || i.cls === 'chip-warn'; }).length;
+      sumEl.textContent = items.length
+        ? ('未完成 ' + open.length + ' 项' + (urgent ? ('（其中 ' + urgent + ' 项 7 天内到期）') : '') + ' ｜ 已完成 ' + doneN + ' 项')
+        : 'todos.json 暂无数据';
+    }
+
+    const row = (x, isDone) => {
+      const due = todoDueInfo(x.due);
+      const catCls = TODO_CAT_CLS[x.category] || '';
+      return `<div class="card todo-card${isDone ? ' todo-done' : ''}" data-id="${esc(x.id)}">
+        <div class="card-top">
+          <div style="display:flex;gap:10px;align-items:flex-start">
+            <input type="checkbox" class="todo-check" data-id="${esc(x.id)}" ${isDone ? 'checked' : ''} style="margin-top:4px;width:17px;height:17px;cursor:pointer">
+            <div>
+              <div class="card-title">${esc(x.title)}</div>
+              <div class="card-sub">${esc(x.detail || '')}</div>
+              <div class="tags">
+                ${x.category ? `<span class="chip ${catCls}">${esc(x.category)}</span>` : ''}
+                <span class="chip ${due.cls}">${esc(due.text)}</span>
+                ${isDone ? `<span class="chip chip-good">已完成${x.done_at ? ' · ' + esc(x.done_at) : ''}</span>` : ''}
+                ${x.priority === 'high' && !isDone ? '<span class="chip chip-bad">高优先</span>' : ''}
+                ${x.evidence ? `<span class="chip">${esc(x.evidence)}</span>` : ''}
+              </div>
+            </div>
+          </div>
+          <div class="card-right">${x.link ? `<a href="${esc(x.link)}" target="_blank" rel="noopener">入口 →</a>` : ''}</div>
+        </div>
+      </div>`;
+    };
+
+    let html = open.map(x => row(x, false)).join('');
+    if (!open.length) html += '<div class="empty">没有未完成的待办 🎉</div>';
+    if (todoShowDone && done.length) html += '<div class="section-title" style="margin-top:14px">已完成（' + done.length + '）</div>' + done.map(x => row(x, true)).join('');
+    listEl.innerHTML = html;
+
+    listEl.querySelectorAll('.todo-check').forEach(cb => {
+      cb.addEventListener('change', async () => {
+        const id = cb.getAttribute('data-id');
+        const item = (data.todos || []).find(t => t.id === id);
+        const next = cb.checked;
+        cb.disabled = true;
+        try {
+          const res = await fetch('/api/todos/toggle', {
+            method: 'POST', headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ id: id, done: next }),
+          });
+          const j = await res.json();
+          if (!j.ok) throw new Error(j.error || 'toggle failed');
+          if (item) { item.done = j.done; item.done_at = j.done_at || ''; }
+        } catch (e) {
+          cb.checked = !next;                       // 写失败就回滚勾选状态，避免"看起来完成了其实没存"
+          alert('保存失败：' + e.message);
+        } finally {
+          cb.disabled = false;
+          renderTodos();
+        }
+      });
+    });
+
+    // 2026-10-10 修复：原来只有 17px 的小复选框能点，点偏一点就"看起来勾了其实没勾"。
+    // 现在整张待办卡都可点（点链接除外），命中面积大很多。
+    listEl.onclick = (ev) => {
+      if (ev.target.closest('a')) return;                 // 「入口 →」照常跳转
+      const card = ev.target.closest('.todo-card');
+      if (!card) return;
+      const cb = card.querySelector('.todo-check');
+      if (!cb || ev.target === cb) return;               // 直接点复选框时走它自己的 change
+      cb.checked = !cb.checked;
+      cb.dispatchEvent(new Event('change', { bubbles: true }));
+    };
+  }
+
+  const todoToggleBtn = document.getElementById('todo-toggle-done');
+  if (todoToggleBtn) todoToggleBtn.addEventListener('click', () => { todoShowDone = !todoShowDone; renderTodos(); });
+
+  // ---------- 数据一致性：职位池 ↔ 台账 ----------
+  function renderConsistency() {
+    const panel = document.getElementById('consistency-panel');
+    const sumEl = document.getElementById('consistency-summary');
+    if (!panel) return;
+    // 归一后再比对：用 companyCore() 剥掉「牛客网-」等平台前缀与「有限公司」等后缀，
+    // 否则同一家的不同写法会被当成缺口（实测原始字符串比对会把 7 笔报成 30 笔）。
+    const keyOf = (c, t) => (companyCore(c) + '||' + String(t || '').trim()).toLowerCase();
+
+    const pool = data.jobPool || [];
+    const ledger = ledgerRows();
+    const poolSub = pool.filter(r => r.status === 'Submitted');
+    const ledgerSub = ledgerSubmitted();
+
+    const poolKeys = new Map();
+    let dupPool = 0;
+    pool.forEach(r => {
+      const k = keyOf(r.company, r.job_title);
+      if (poolKeys.has(k)) dupPool++; else poolKeys.set(k, r);
+    });
+    const ledgerKeys = new Set(ledger.map(r => keyOf(r.company, r.job_title)));
+
+    let ledgerNotInPool = 0;
+    ledgerSub.forEach(r => { if (!poolKeys.has(keyOf(r.company, r.job_title))) ledgerNotInPool++; });
+    let poolNotInLedger = 0;
+    poolSub.forEach(r => { if (!ledgerKeys.has(keyOf(r.company, r.job_title))) poolNotInLedger++; });
+
+    if (sumEl) sumEl.textContent = '池 ' + pool.length + ' 行 / 台账 ' + ledger.length + ' 行';
+    const row = (label, val, hint, bad) => `<tr>
+        <td class="q-company">${esc(label)}</td>
+        <td class="q-num"><span class="chip ${bad ? 'chip-bad' : 'chip-good'}">${val}</span></td>
+        <td class="q-note">${esc(hint)}</td></tr>`;
+
+    panel.innerHTML = '<table class="quota-table"><thead><tr><th>指标</th><th>值</th><th>说明</th></tr></thead><tbody>'
+      + row('池内 Submitted', poolSub.length, 'job_pool.csv 里状态为 Submitted 的行数（含"一个标题塞多岗"的汇总行）', false)
+      + row('台账 Submitted', ledgerSub.length, 'application_log.csv 里状态为 Submitted 的行数 —— 但请注意这不等于"在途"，见「在途（活口）」', false)
+      + row('台账有此笔、池里查无', ledgerNotInPool, '按"公司+岗位"归一比对。>0 说明池子漏收录（09-29 曾少报 115 笔，故常驻此项监控）', ledgerNotInPool > 0)
+      + row('池里有此笔、台账查无', poolNotInLedger, '多为池子的汇总行 / 标题写法差异，属匹配口径问题，不一定是丢记录', false)
+      + row('池内重复行', dupPool, '同一"公司+岗位"在池里出现多次（多轮扫岗累加所致），会让计数虚高', dupPool > 0)
+      + '</tbody></table>';
   }
 
   // ---------- quota panel ----------
@@ -743,9 +1985,141 @@
   }
 
   // ---------- applied view ----------
+  // ---------- 公司名归一：把同一家的不同写法并成一个「实际公司」 ----------
+  // 实测 303 种写法 → 269 家（33 组是变体，如
+  // 联影医疗 / 上海联影医疗科技 / 上海联影医疗科技股份有限公司(联影集团)）
+  // 前缀表取自 company_aliases.json 的 strip_platform_prefixes；
+  // ⚠️ 只做**行首精确剥离**，绝不做模糊包含匹配
+  //   （项目 _rules 记录：曾因前缀模糊匹配把「中国电子云」判成「中国电信」而误判已投）
+  const PLATFORM_PREFIXES = [
+    '牛客网-', '牛客网 -', '前程无忧-', '前程无忧 -', '应届生求职网-',
+    '智联招聘-', '51job-', '51job -', '实习僧-', 'BOSS直聘-',
+  ];
+  function stripPlatformPrefix(s) {
+    let out = String(s || '').trim();
+    for (let i = 0; i < 4; i++) {
+      const before = out;
+      PLATFORM_PREFIXES.forEach(p => { if (out.startsWith(p)) out = out.slice(p.length).trim(); });
+      if (out === before) break;
+    }
+    return out;
+  }
+  const CITY_RE = /^(上海|北京|广州|深圳|杭州|南京|成都|武汉|苏州|天津|重庆|西安|长沙|青岛|厦门|福州|合肥|郑州|济南|宁波|无锡|东莞|佛山|珠海|中山|惠州|梅州|海口|三亚)/;
+  const SUFFIX_RES = [
+    /股份有限公司$/, /有限责任公司$/, /有限公司$/, /集团有限公司$/, /集团$/,
+    /网络科技有限公司$/, /信息科技有限公司$/, /科技有限公司$/, /技术有限公司$/,
+    /数字技术股份有限公司$/,
+    // ⚠️ 只剥「科技」，不剥「信息科技」/「网络科技」/「数字技术」：
+    //   实测 上海合合信息科技股份有限公司 应归到「合合信息」（不是「合合」），
+    //   青木数字技术股份有限公司 应归到「青木数字技术」。剥多了会把品牌名切坏。
+    /科技$/,
+    /（中国）$/, /\(中国\)$/, /公司$/,
+  ];
+  function companyCore(name) {
+    let s = stripPlatformPrefix(name).replace(/\s+/g, '');
+    s = s.replace(/[（(][^）)]*[）)]$/, '');
+    for (let i = 0; i < 3; i++) {
+      let s2 = s.replace(CITY_RE, '');
+      SUFFIX_RES.forEach(rx => { s2 = s2.replace(rx, ''); });
+      if (s2 === s) break;
+      s = s2;
+    }
+    return s || stripPlatformPrefix(name);
+  }
+  // 展示名取「最短且不带括号补充」的那个写法，读起来最清楚
+  function displayName(variants) {
+    const arr = [...variants].filter(Boolean);
+    arr.sort((a, b) => {
+      const pa = /[（(]/.test(a) ? 1 : 0, pb = /[（(]/.test(b) ? 1 : 0;
+      if (pa !== pb) return pa - pb;
+      return a.length - b.length;
+    });
+    return arr[0] || '';
+  }
+
+  // ---------- applied view ----------
+  // ── 站点额度：只在「已投递」的公司条目标注（2026-10-09 用户要求，取消独立额度面板）──
+  function normQuotaName(s) {
+    return String(s || '').replace(/[（）()【】\[\]\s·・,，.。\-—_｜|]/g, '').toLowerCase();
+  }
+  function quotaForGroup(g) {
+    const names = [g.name, g.core].concat([...(g.variants || [])]).map(normQuotaName).filter(n => n.length >= 2);
+    if (!names.length) return null;
+    return (data.quotas || []).find(q => [q.canonical, q.company].map(normQuotaName).filter(Boolean).some(c =>
+      names.some(n => n === c || (c.length >= 4 && n.indexOf(c) >= 0) || (n.length >= 4 && c.indexOf(n) >= 0)))) || null;
+  }
+  function quotaChip(q) {
+    if (!q) return '';
+    const usedNum = (typeof q.used === 'number') ? q.used : null;
+    const limNum = (typeof q.limit === 'number') ? q.limit : null;
+    const used = usedNum === null ? '—' : usedNum;
+    const rem = (typeof q.remaining === 'number') ? q.remaining
+      : (limNum !== null && usedNum !== null ? Math.max(0, limNum - usedNum) : null);
+    if (q.status === 'quota_exhausted') return '<span class="chip chip-critical">额度已满 ' + used + '/' + (limNum === null ? '—' : limNum) + '</span>';
+    if (q.status === 'closed_by_user') return '<span class="chip chip-warning">本人已停投 · 已投 ' + used + '</span>';
+    if (q.status === 'no_openings') return '<span class="chip">无在招岗位</span>';
+    if (limNum === null) return '<span class="chip">额度未公示 · 已投 ' + used + '</span>';
+    return '<span class="chip chip-warning">额度 ' + used + '/' + limNum + (rem !== null ? ' · 剩 ' + rem : '') + '</span>';
+  }
+  function quotaDetailRow(q) {
+    if (!q) return '';
+    const parts = [
+      '已投 ' + ((typeof q.used === 'number') ? q.used : '未记录')
+        + ((typeof q.limit === 'number') ? (' / 上限 ' + q.limit) : ' / 上限未公示')
+        + ((typeof q.remaining === 'number') ? (' / 剩 ' + q.remaining) : ''),
+      q.period ? ('周期：' + q.period) : '',
+      q.status ? ('额度状态：' + q.status) : '',
+      q.ats ? ('ATS：' + q.ats) : '',
+      q.site ? ('站点：' + q.site) : '',
+      q.note ? ('原文/判定：' + q.note) : '',
+    ].filter(Boolean).join(' ｜ ');
+    return '<dt>站点额度</dt><dd>' + escMultiline(parts) + '</dd>';
+  }
+
+  // ── 公司分类（行业/规模/性质/城市）：company_profile.csv（2026-10-09）──
+  function profileForName(company) {
+    const n = normQuotaName(company);
+    if (!n) return null;
+    const list = data.companyProfile || [];
+    let hit = list.find(p => normQuotaName(p.key) === n || normQuotaName(p.company) === n);
+    if (!hit) {
+      hit = list.find(p => {
+        const c = normQuotaName(p.key);
+        if (!c) return false;
+        const a = c.length >= n.length ? c : n, b = c.length >= n.length ? n : c;
+        return b.length >= 2 && a.length >= 4 && a.indexOf(b) >= 0;
+      });
+    }
+    return hit || null;
+  }
+  function profileChips(p) {
+    if (!p) return '';
+    const out = [];
+    if (p.industry) out.push('<span class="chip chip-cat1">' + esc(p.industry) + '</span>');
+    if (p.size) out.push('<span class="chip ' + (p.size === '大厂' ? '' : (p.size === '中厂' ? 'chip-warning' : 'chip-good')) + '">' + esc(p.size) + '</span>');
+    if (p.nature) out.push('<span class="chip">' + esc(p.nature) + '</span>');
+    if (p.city) out.push('<span class="chip ' + (p.city === '其他' ? '' : 'chip-cat1') + '">' + esc(p.city) + '</span>');
+    return out.join('');
+  }
+  function profileDetailRow(p) {
+    if (!p) return '';
+    const parts = [
+      p.industry ? ('行业：' + p.industry) : '',
+      p.size ? ('规模：' + p.size) : '',
+      p.nature ? ('性质：' + p.nature) : '',
+      p.city ? ('城市：' + p.city + (p.city_raw && p.city_raw !== p.city ? ('（' + p.city_raw + '）') : '')) : '',
+      p.basis ? ('判据：' + p.basis) : '',
+      p.source ? ('来源：' + p.source + '　' + (p.updated_at || '')) : '',
+    ].filter(Boolean).join(' ｜ ');
+    return '<dt>公司分类</dt><dd>' + escMultiline(parts) + '</dd>';
+  }
+
   function renderApplied() {
     const listEl = document.getElementById('applied-list');
     const catSel = document.getElementById('applied-filter-cat');
+    const indSel = document.getElementById('applied-filter-industry');
+    const citySel = document.getElementById('applied-filter-city');
+    const natSel = document.getElementById('applied-filter-nature');
     const search = document.getElementById('applied-search');
 
     // 池内的 Submitted 行 + 只在台账里出现的 Submitted 行（去重后合并）。
@@ -784,64 +2158,26 @@
       const cats = [...new Set(rows.map(category))].sort();
       cats.forEach(c => { const o = document.createElement('option'); o.value = c; o.textContent = c; catSel.appendChild(o); });
     }
+    // populate 行业 / 城市 / 性质 筛选（来源 company_profile.csv）
+    const fillSel = (sel, field) => {
+      if (sel.options.length > 1) return;
+      const vals = [...new Set((data.companyProfile || []).map(p => p[field]).filter(Boolean))].sort();
+      vals.forEach(v => { const o = document.createElement('option'); o.value = v; o.textContent = v; sel.appendChild(o); });
+    };
+    fillSel(indSel, 'industry'); fillSel(citySel, 'city'); fillSel(natSel, 'nature');
 
-    // ---------- 公司名归一：把同一家的不同写法并成一个「实际公司」 ----------
-    // 实测 303 种写法 → 269 家（33 组是变体，如
-    // 联影医疗 / 上海联影医疗科技 / 上海联影医疗科技股份有限公司(联影集团)）
-    // 前缀表取自 company_aliases.json 的 strip_platform_prefixes；
-    // ⚠️ 只做**行首精确剥离**，绝不做模糊包含匹配
-    //   （项目 _rules 记录：曾因前缀模糊匹配把「中国电子云」判成「中国电信」而误判已投）
-    const PLATFORM_PREFIXES = [
-      '牛客网-', '牛客网 -', '前程无忧-', '前程无忧 -', '应届生求职网-',
-      '智联招聘-', '51job-', '51job -', '实习僧-', 'BOSS直聘-',
-    ];
-    function stripPlatformPrefix(s) {
-      let out = String(s || '').trim();
-      for (let i = 0; i < 4; i++) {
-        const before = out;
-        PLATFORM_PREFIXES.forEach(p => { if (out.startsWith(p)) out = out.slice(p.length).trim(); });
-        if (out === before) break;
-      }
-      return out;
-    }
-    const CITY_RE = /^(上海|北京|广州|深圳|杭州|南京|成都|武汉|苏州|天津|重庆|西安|长沙|青岛|厦门|福州|合肥|郑州|济南|宁波|无锡|东莞|佛山|珠海|中山|惠州|梅州|海口|三亚)/;
-    const SUFFIX_RES = [
-      /股份有限公司$/, /有限责任公司$/, /有限公司$/, /集团有限公司$/, /集团$/,
-      /网络科技有限公司$/, /信息科技有限公司$/, /科技有限公司$/, /技术有限公司$/,
-      /数字技术股份有限公司$/,
-      // ⚠️ 只剥「科技」，不剥「信息科技」/「网络科技」/「数字技术」：
-      //   实测 上海合合信息科技股份有限公司 应归到「合合信息」（不是「合合」），
-      //   青木数字技术股份有限公司 应归到「青木数字技术」。剥多了会把品牌名切坏。
-      /科技$/,
-      /（中国）$/, /\(中国\)$/, /公司$/,
-    ];
-    function companyCore(name) {
-      let s = stripPlatformPrefix(name).replace(/\s+/g, '');
-      s = s.replace(/[（(][^）)]*[）)]$/, '');
-      for (let i = 0; i < 3; i++) {
-        let s2 = s.replace(CITY_RE, '');
-        SUFFIX_RES.forEach(rx => { s2 = s2.replace(rx, ''); });
-        if (s2 === s) break;
-        s = s2;
-      }
-      return s || stripPlatformPrefix(name);
-    }
-    // 展示名取「最短且不带括号补充」的那个写法，读起来最清楚
-    function displayName(variants) {
-      const arr = [...variants].filter(Boolean);
-      arr.sort((a, b) => {
-        const pa = /[（(]/.test(a) ? 1 : 0, pb = /[（(]/.test(b) ? 1 : 0;
-        if (pa !== pb) return pa - pb;
-        return a.length - b.length;
-      });
-      return arr[0] || '';
-    }
 
-    let shownGroups = 40;   // 增量渲染：先出 40 家，按需加载
+    // ── 书页式分页（2026-10-04 用户要求：已投递太多，避免无限下滑）──
+    // 每页固定 PER_PAGE 家公司；翻页器在列表底部（sticky），支持 ← → 键翻页。
+    const PER_PAGE = 8;
+    let appliedPage = 1;
 
     function draw() {
       let filtered = rows.slice();
       if (catSel.value) filtered = filtered.filter(r => category(r) === catSel.value);
+      if (indSel.value) filtered = filtered.filter(r => { const p = profileForName(r.company); return p && p.industry === indSel.value; });
+      if (citySel.value) filtered = filtered.filter(r => { const p = profileForName(r.company); return p && p.city === citySel.value; });
+      if (natSel.value) filtered = filtered.filter(r => { const p = profileForName(r.company); return p && p.nature === natSel.value; });
       const q = search.value.trim().toLowerCase();
       if (q) {
         filtered = filtered.filter(r =>
@@ -869,24 +2205,32 @@
 
       const totalGroups = glist.length;
       const totalJobs = filtered.length;
-      const page = q ? glist : glist.slice(0, shownGroups);
+      const totalPages = Math.max(1, Math.ceil(totalGroups / PER_PAGE));
+      if (appliedPage > totalPages) appliedPage = totalPages;
+      if (appliedPage < 1) appliedPage = 1;
+      const from = (appliedPage - 1) * PER_PAGE;
+      const page = glist.slice(from, from + PER_PAGE);
 
       listEl.innerHTML = '';
       if (!totalJobs) { listEl.innerHTML = '<div class="empty">没有匹配的记录</div>'; return; }
 
-      const bar = document.createElement('div');
-      bar.className = 'list-meta';
-      bar.textContent = q
-        ? ('匹配 ' + totalGroups + ' 家公司 · ' + totalJobs + ' 个岗位')
-        : ('共 ' + totalGroups + ' 家公司 · ' + totalJobs + ' 个岗位'
-           + (totalGroups > page.length ? '（已显示 ' + page.length + ' 家）' : ''));
-      listEl.appendChild(bar);
+      // 书页顶部书签条：本页范围 + 翻页提示
+      const ribbon = document.createElement('div');
+      ribbon.className = 'book-ribbon';
+      ribbon.innerHTML =
+        '<span class="r-page">第 ' + appliedPage + ' / ' + totalPages + ' 页</span>'
+        + '<span>本页 ' + page.length + ' 家 ｜ 全部 ' + esc(String(totalGroups)) + ' 家 · ' + esc(String(totalJobs)) + ' 个岗位'
+        + (totalGroups ? ('（按公司合并）') : '') + '</span>'
+        + '<span class="r-hint">← → 键可翻页</span>';
+      listEl.appendChild(ribbon);
 
       page.forEach(g => {
         const group = document.createElement('div');
         group.className = 'card company-group';
         const catChips = g.cats.map(c => `<span class="chip ${catChipClass(c)}">${esc(c)}</span>`).join('');
         const mode = submissionMode(g.rows[0].company);
+        const q = quotaForGroup(g);
+        const prof = profileForName(g.name) || profileForName(g.core);
         group.innerHTML = `
           <div class="card-top">
             <div>
@@ -894,7 +2238,7 @@
                 <span class="count-badge">${g.rows.length} 个岗位</span>
               </div>
               <div class="card-sub">${esc(g.variants.size > 1 ? ('合并 ' + g.variants.size + ' 种记录写法') : currentStage(g.rows[0]))}</div>
-              <div class="tags">${catChips}<span class="chip ${mode.cls}">${esc(mode.label)}</span></div>
+              <div class="tags">${catChips}<span class="chip ${mode.cls}">${esc(mode.label)}</span>${profileChips(prof)}${quotaChip(q)}</div>
             </div>
             <div class="card-right">最新 ${esc(g.latest)}<br><span class="chev">▸ 展开</span></div>
           </div>
@@ -918,12 +2262,14 @@
             <div class="pos-detail">
               <dt>职位/城市</dt><dd>${esc(r.job_title)} · ${esc(r.location)}</dd>
               <dt>岗位描述（JD）</dt><dd>${jd ? escMultiline(jd) : '暂未记录，可在 application_log.csv 的 job_description 列补充'}</dd>
+              ${quotaDetailRow(q)}
+              ${profileDetailRow(prof)}
               <dt>备注</dt><dd>${esc(r.notes)}</dd>
               <dt>next_action</dt><dd>${esc(r.next_action)}</dd>
               ${r.job_url ? `<dt>链接</dt><dd><a href="${esc(r.job_url)}" target="_blank" rel="noopener">${esc(r.job_url)}</a></dd>` : ''}
               <dt>跟进时间线</dt><dd>${timeline}</dd>
               <div class="end-progress">
-                <button class="btn end-trigger">进度已结束</button>
+                <button class="btn end-trigger">进度已终止</button>
                 <div class="end-choices hidden">
                   <button class="btn btn-good end-choice" data-status="Offer">已通过</button>
                   <button class="btn btn-bad end-choice" data-status="Rejected">已被挂</button>
@@ -960,19 +2306,71 @@
         listEl.appendChild(group);
       });
 
-      if (!q && totalGroups > page.length) {
-        const more = document.createElement('div');
-        more.className = 'list-more';
-        more.innerHTML = `<button class="btn" id="applied-more">显示更多公司（还有 ${totalGroups - page.length} 家）</button>`;
-        more.querySelector('#applied-more').addEventListener('click', () => {
-          shownGroups += 40;
-          draw();
+      // ── 书页式翻页器（上一页 / 页码 / 下一页），替代原来的「显示更多」无限下拉 ──
+      if (totalPages > 1) {
+        const pager = document.createElement('div');
+        pager.className = 'pager book-pager';
+        const mk = (label, target, opts) => {
+          opts = opts || {};
+          const b = document.createElement('button');
+          b.type = 'button';
+          b.className = 'page-btn' + (opts.active ? ' active' : '') + (opts.disabled ? ' disabled' : '');
+          b.dataset.page = String(target);
+          b.textContent = label;
+          if (opts.disabled) b.disabled = true;
+          else b.addEventListener('click', () => {
+            appliedPage = target;
+            draw();
+            listEl.scrollIntoView({ behavior: 'smooth', block: 'start' });
+          });
+          return b;
+        };
+        pager.appendChild(mk('‹ 上一页', appliedPage - 1, { disabled: appliedPage <= 1 }));
+        const nums = new Set([1, totalPages, appliedPage - 2, appliedPage - 1, appliedPage, appliedPage + 1, appliedPage + 2]);
+        const sorted = [...nums].filter(n => n >= 1 && n <= totalPages).sort((a, b) => a - b);
+        let prevN = 0;
+        sorted.forEach(n => {
+          if (prevN && n - prevN > 1) {
+            const gap = document.createElement('span');
+            gap.className = 'page-gap';
+            gap.textContent = '…';
+            pager.appendChild(gap);
+          }
+          pager.appendChild(mk(String(n), n, { active: n === appliedPage }));
+          prevN = n;
         });
-        listEl.appendChild(more);
+        pager.appendChild(mk('下一页 ›', appliedPage + 1, { disabled: appliedPage >= totalPages }));
+        const jump = document.createElement('span');
+        jump.className = 'page-jump';
+        jump.textContent = '共 ' + totalPages + ' 页';
+        pager.appendChild(jump);
+        listEl.appendChild(pager);
       }
     }
-    catSel.onchange = () => { shownGroups = 40; draw(); };
-    search.oninput = () => { shownGroups = 40; draw(); };
+
+    // ← → 键翻页（书页手感）；只在「已投递」页可见时生效，且不干扰输入框
+    if (!window.__appliedKeyBound) {
+      window.__appliedKeyBound = true;
+      document.addEventListener('keydown', (e) => {
+        const v = document.getElementById('applied-view');
+        if (!v || v.classList.contains('hidden')) return;
+        const tag = (e.target && e.target.tagName) || '';
+        if (tag === 'INPUT' || tag === 'SELECT' || tag === 'TEXTAREA') return;
+        const cur = document.querySelector('#applied-list .page-btn.active');
+        if (!cur) return;
+        const p = Number(cur.dataset.page);
+        if (!isFinite(p)) return;
+        const want = e.key === 'ArrowLeft' ? (p - 1) : (e.key === 'ArrowRight' ? (p + 1) : 0);
+        if (!want) return;
+        const target = document.querySelector('#applied-list .page-btn[data-page="' + want + '"]');
+        if (target && !target.disabled) { target.click(); e.preventDefault(); }
+      });
+    }
+    catSel.onchange = () => { appliedPage = 1; draw(); };
+    indSel.onchange = () => { appliedPage = 1; draw(); };
+    citySel.onchange = () => { appliedPage = 1; draw(); };
+    natSel.onchange = () => { appliedPage = 1; draw(); };
+    search.oninput = () => { appliedPage = 1; draw(); };
     draw();
   }
 
@@ -985,7 +2383,14 @@
     const citySel = document.getElementById('pending-filter-city');
     const search = document.getElementById('pending-search');
 
-    let rows = data.jobPool.filter(r => r.status === 'Pending' || r.status === 'Needs user');
+    // 池内「未投递类」行，按与台账的关系分三桶：
+    //   same    → 同公司同岗位已在台账里 ⇒ 其实已投（移出主列表）
+    //   company → 同公司投过别的岗      ⇒ 也移出主列表，单列提示（这就是"看着像没投其实投过"的主因）
+    //   null    → 台账里没这家公司      ⇒ 真正的未投递
+    let allRows = pendingPoolRows();
+    const rows = allRows.filter(r => !ledgerMatchFor(r));
+    const staleRows = allRows.filter(r => { const m = ledgerMatchFor(r); return m && m.kind === 'same'; });
+    const sameCoRows = allRows.filter(r => { const m = ledgerMatchFor(r); return m && m.kind === 'company'; });
 
     if (catSel.options.length <= 1) {
       [...new Set(rows.map(category))].sort().forEach(c => { const o=document.createElement('option'); o.value=c; o.textContent=c; catSel.appendChild(o); });
@@ -997,30 +2402,126 @@
       [...new Set(rows.map(r => r.location).filter(Boolean))].sort().forEach(c => { const o=document.createElement('option'); o.value=c; o.textContent=c; citySel.appendChild(o); });
     }
 
-    function rowCard(r) {
+    // ── 书页式版式（与「已投递」完全同一套）：公司分组卡 + 每页 8 家 ──
+    // 四个区块（已确认开放 / 未开状态不明 / 池内状态未同步 / 同公司已投别的岗）各自一组书页，
+    // 页码状态互相独立；筛选变化时统一回到第 1 页。
+    const pages = { open: { page: 1 }, notopen: { page: 1 }, stale: { page: 1 }, sameco: { page: 1 } };
+    function resetPages() { Object.keys(pages).forEach(k => { pages[k].page = 1; }); }
+
+    // 主列表的一行待投岗位 → .position-row
+    function pendPosEl(r) {
       const cat = category(r);
       const summary = (r.next_action || '').split(/[；;]/)[0];
       const unclearChip = r.cohort_match_status === 'Unclear' ? '<span class="chip chip-warning">状态不明确，需人工复核</span>' : '';
-      const html = `
-        <div class="card-top">
-          <div>
-            <div class="card-title">${esc(r.company)}</div>
-            <div class="card-sub">${esc(r.job_title)} · ${esc(r.location)}</div>
-            <div class="tags">
-              <span class="chip ${catChipClass(cat)}">${esc(cat)}</span>
-              <span class="chip">优先级 ${esc(r.priority)}</span>
-              ${unclearChip}
-            </div>
-          </div>
-          <div class="card-right">${esc(summary)}</div>
-        </div>
-        <div class="detail">
-          <dt>next_action</dt><dd>${esc(r.next_action)}</dd>
-          <dt>备注</dt><dd>${esc(r.notes)}</dd>
-          ${r.job_url ? `<dt>链接</dt><dd><a href="${esc(r.job_url)}" target="_blank" rel="noopener">${esc(r.job_url)}</a></dd>` : ''}
-        </div>`;
-      return cardEl(html);
+      const m = ledgerMatchFor(r);
+      const companyChip = (m && m.kind === 'company')
+        ? '<span class="chip chip-warn">同公司已投过别的岗</span>' : '';
+      const detail =
+        '<div class="tags">'
+        + '<span class="chip ' + catChipClass(cat) + '">' + esc(cat) + '</span>'
+        + '<span class="chip">优先级 ' + esc(r.priority) + '</span>'
+        + companyChip + unclearChip
+        + '</div>'
+        + '<dt>池内状态</dt><dd>' + esc((r.status || '').trim()) + '</dd>'
+        + '<dt>next_action</dt><dd>' + esc(r.next_action) + '</dd>'
+        + '<dt>备注</dt><dd>' + esc(r.notes) + '</dd>'
+        + (r.job_url ? '<dt>链接</dt><dd><a href="' + esc(r.job_url) + '" target="_blank" rel="noopener">' + esc(r.job_url) + '</a></dd>' : '');
+      return bookPositionRow(esc(r.job_title), esc(r.location) + (summary ? ' · ' + esc(summary) : ''), detail);
     }
+
+    // 「池内状态未同步」一行：显示台账里的真实状态与投递日，说明池内状态为何过期
+    function stalePosEl(r) {
+      const m = ledgerMatchFor(r);
+      const l = m.row;
+      const st = (l.status || '').trim();
+      const cls = (st === 'Submitted' || st === 'Assessment' || st === 'Interview' || st === 'Offer')
+        ? 'chip-good' : 'chip-bad';
+      const detail =
+        '<div class="tags">'
+        + '<span class="chip chip-warn">池内状态：' + esc(r.status) + '</span>'
+        + '<span class="chip ' + cls + '">台账：' + esc(st) + '</span>'
+        + '<span class="chip">投递 ' + esc(l.attempt_date || '—') + '</span>'
+        + '</div>'
+        + '<dt>台账岗位</dt><dd>' + esc(l.job_title) + '</dd>'
+        + '<dt>台账证据</dt><dd>' + esc((l.submission_evidence || '').slice(0, 600)) + '</dd>'
+        + (l.notes ? '<dt>台账备注</dt><dd>' + esc(String(l.notes).slice(0, 600)) + '</dd>' : '');
+      return bookPositionRow(esc(r.job_title), esc(l.attempt_date || '—'), detail);
+    }
+
+    // 「同公司已投过别的岗」一行：列出该岗位本身 + 台账里实际投的是什么
+    function sameCoPosEl(r) {
+      const m = ledgerMatchFor(r);
+      const l = m.row;
+      const st = (l.status || '').trim();
+      const summary = (r.next_action || '').split(/[；;]/)[0];
+      const detail =
+        '<div class="tags">'
+        + '<span class="chip chip-warn">同公司已投</span>'
+        + '<span class="chip">台账投的是：' + esc(String(l.job_title).slice(0, 40)) + '</span>'
+        + '<span class="chip">' + esc(st) + ' · ' + esc(l.attempt_date || '') + '</span>'
+        + '</div>'
+        + '<dt>池内待投岗位</dt><dd>' + esc(r.job_title) + ' · ' + esc(r.location) + '</dd>'
+        + '<dt>池内备注</dt><dd>' + esc(r.notes) + '</dd>'
+        + '<dt>台账证据</dt><dd>' + esc((l.submission_evidence || '').slice(0, 600)) + '</dd>'
+        + (r.job_url ? '<dt>链接</dt><dd><a href="' + esc(r.job_url) + '" target="_blank" rel="noopener">' + esc(r.job_url) + '</a></dd>' : '');
+      return bookPositionRow(esc(r.job_title), esc(r.location) + (summary ? ' · ' + esc(summary) : ''), detail);
+    }
+
+    // 分组公共统计 + 组间排序（最新在前，与「已投递」一致）
+    function pendPrepare(g) {
+      g.latest = g.rows.map(r => (r.date_found || '').trim()).filter(Boolean).sort().pop() || '';
+      g.cats = [...new Set(g.rows.map(category))];
+      g.prios = [...new Set(g.rows.map(r => (r.priority || '').trim()).filter(Boolean))];
+      g.statuses = [...new Set(g.rows.map(r => (r.status || '').trim()).filter(Boolean))];
+      g.unclear = g.rows.some(r => r.cohort_match_status === 'Unclear');
+      g.ledgerDates = g.rows.map(r => { const m = ledgerMatchFor(r); return m ? String(m.row.attempt_date || '').trim() : ''; }).filter(Boolean);
+      g.ledgerSts = [...new Set(g.rows.map(r => { const m = ledgerMatchFor(r); return m ? (m.row.status || '').trim() : ''; }).filter(Boolean))];
+    }
+    const sortByLatest = (gl) => gl.sort((a, b) => (b.latest || '').localeCompare(a.latest || ''));
+
+    const mainBookOpts = {
+      emptyText: '没有匹配的记录',
+      prepare: pendPrepare,
+      sortGroups: sortByLatest,
+      cardOf: (g) => bookGroupCard(g, {
+        sub: g.variants.size > 1
+          ? esc('合并 ' + g.variants.size + ' 种记录写法')
+          : esc('池内状态：' + g.statuses.join(' / ')),
+        chips: g.cats.map(c => '<span class="chip ' + catChipClass(c) + '">' + esc(c) + '</span>').join('')
+          + g.prios.map(p => '<span class="chip">优先级 ' + esc(p) + '</span>').join('')
+          + (g.unclear ? '<span class="chip chip-warning">状态不明确，需人工复核</span>' : ''),
+        right: '最新 ' + esc(g.latest || '—'),
+        rowEl: pendPosEl,
+      }),
+      redraw: () => draw(),
+    };
+
+    const staleBookOpts = {
+      emptyText: '没有此类记录 ✅',
+      prepare: pendPrepare,
+      sortGroups: sortByLatest,
+      cardOf: (g) => bookGroupCard(g, {
+        sub: esc('已投，不是待投'),
+        chips: g.statuses.map(x => '<span class="chip chip-warn">池内状态：' + esc(x) + '</span>').join('')
+          + g.ledgerSts.map(x => '<span class="chip">台账：' + esc(x) + '</span>').join(''),
+        right: '最新 ' + esc(g.ledgerDates.slice().sort().pop() || '—'),
+        rowEl: stalePosEl,
+      }),
+      redraw: () => draw(),
+    };
+
+    const sameCoBookOpts = {
+      emptyText: '没有此类记录 ✅',
+      prepare: pendPrepare,
+      sortGroups: sortByLatest,
+      cardOf: (g) => bookGroupCard(g, {
+        sub: esc('同公司已投过别的岗'),
+        chips: g.ledgerSts.map(x => '<span class="chip">台账：' + esc(x) + '</span>').join(''),
+        right: '最新 ' + esc(g.ledgerDates.slice().sort().pop() || '—'),
+        rowEl: sameCoPosEl,
+      }),
+      redraw: () => draw(),
+    };
 
     function draw() {
       let filtered = rows.slice();
@@ -1037,22 +2538,213 @@
       document.getElementById('pending-open-title').textContent = `已确认开放，还没投（${openRows.length}）`;
       document.getElementById('pending-notopen-title').textContent = `未开 / 状态不明（${notOpenRows.length}）`;
 
-      openEl.innerHTML = '';
-      notOpenEl.innerHTML = '';
-      openEl.innerHTML = openRows.length ? '' : '<div class="empty">没有匹配的记录</div>';
-      notOpenEl.innerHTML = notOpenRows.length ? '' : '<div class="empty">没有匹配的记录</div>';
-      openRows.forEach(r => openEl.appendChild(rowCard(r)));
-      notOpenRows.forEach(r => notOpenEl.appendChild(rowCard(r)));
+      // 「池内状态未同步」区块：池里还写着待投，但台账已有同公司同岗位记录
+      const staleTitle = document.getElementById('pending-stale-title');
+      const staleNote = document.getElementById('pending-stale-note');
+      const staleEl = document.getElementById('pending-stale-list');
+      const staleShown = staleRows.filter(r => !catSel.value || category(r) === catSel.value);
+      if (staleTitle) {
+        staleTitle.classList.toggle('hidden', staleShown.length === 0);
+        staleTitle.textContent = `⚠️ 池内状态未同步（台账显示已投）（${staleShown.length}）`;
+      }
+      if (staleNote) {
+        staleNote.classList.toggle('hidden', staleShown.length === 0);
+        staleNote.innerHTML = '这些行在 <code>job_pool.csv</code> 里状态仍是「' + PENDING_POOL_STATUS.join(' / ') + '」，'
+          + '但按「公司+岗位」<b>归一比对</b>，<code>application_log.csv</code> 里已有对应记录 ⇒ <b>其实是已投，不是待投</b>。'
+          + '看板不自动改池子（池行的 <code>rowIndex</code> 是写回接口的键，且部分行是"一个标题塞多个岗位"的汇总行），'
+          + '所以在此单列，避免误当成新机会去投。';
+      }
+      // 该区块的卡片渲染统一交给下方 bookList()（书页式版式），此处只保留标题/说明的显隐逻辑
+
+      // 「同公司已投过别的岗」区块 —— 这些以前混在「还没投」里，是"看着像没投其实投过"的主因
+      const sameCoTitle = document.getElementById('pending-sameco-title');
+      const sameCoNote = document.getElementById('pending-sameco-note');
+      const sameCoEl = document.getElementById('pending-sameco-list');
+      const sameCoShown = sameCoRows.filter(r => !catSel.value || category(r) === catSel.value);
+      if (sameCoTitle) {
+        sameCoTitle.classList.toggle('hidden', sameCoShown.length === 0);
+        sameCoTitle.textContent = `🟡 同公司已投过别的岗（${sameCoShown.length}）`;
+      }
+      if (sameCoNote) {
+        sameCoNote.classList.toggle('hidden', sameCoShown.length === 0);
+        sameCoNote.innerHTML = '这家公司的台账里<b>有</b>投递记录，但<b>岗位对不上</b>（投的是别的岗）⇒ 从「还没投」里移出单列。'
+          + '点开可看台账实际投的是什么岗。<b>这些岗位本身未必不能投</b>，但要先确认是否与已投岗位冲突（同公司同批次是否限投）。';
+      }
+      // 同「池内状态未同步」区块：卡片渲染交给下方 bookList()
+
+      // ── 两个主列表 + 两个辅助区块，全部走书页式渲染（公司分组卡 + 翻页器）──
+      bookList(openEl, openRows, pages.open, mainBookOpts);
+      bookList(notOpenEl, notOpenRows, pages.notopen, mainBookOpts);
+      if (staleEl) bookList(staleEl, staleShown, pages.stale, staleBookOpts);
+      if (sameCoEl) bookList(sameCoEl, sameCoShown, pages.sameco, sameCoBookOpts);
     }
-    catSel.onchange = draw; prioSel.onchange = draw; citySel.onchange = draw; search.oninput = draw;
+    catSel.onchange = () => { resetPages(); draw(); };
+    prioSel.onchange = () => { resetPages(); draw(); };
+    citySel.onchange = () => { resetPages(); draw(); };
+    search.oninput = () => { resetPages(); draw(); };
+    bookBindKeys('pending-view', '__pendingBookKeysBound');
     draw();
   }
 
   // ---------- ended view ----------
+  // ---------- assessment view：测评性质看板（2026-10-10 从独立页 assessment.html 并入主看板）----------
+  const NATURE_META = {
+    '过筛再测':  { cls: 'chip-good',    desc: '先过简历筛选才发测评 ⇒ 进入测评＝初筛已通过' },
+    '海测':      { cls: 'chip-warning', desc: '投递即触发/全员测评 ⇒ 不代表初筛通过' },
+    '面试后测评': { cls: 'chip-cat1',    desc: '测评排在面试之后 ⇒ 初筛与面试均已过' },
+    '未说明':    { cls: '',             desc: '邀请原文既无"通过筛选"也无"投递即测"表述' },
+  };
+  const NATURE_ORDER = ['过筛再测', '海测', '面试后测评', '未说明'];
+  const NATURE_US_TOOL = { '面试后测评': '' };
+
+  function assessmentRows() {
+    return (data.assessmentNature || []).map(x => {
+      const idx = parseInt(x.row_index, 10);
+      const live = (data.appLog && data.appLog[idx]) || {};
+      return Object.assign({}, x, {
+        __idx: isNaN(idx) ? -1 : idx,
+        status: (live.status || x.status || '').trim(),
+        stage_detail: (live.stage_detail || x.stage_detail || '').trim(),
+        attempt_date: live.attempt_date || '',
+        outcome_reason: live.outcome_reason || '',
+      });
+    });
+  }
+  function natureChip(k) {
+    return '<span class="chip ' + (NATURE_META[k] ? NATURE_META[k].cls : '') + '">' + esc(k) + '</span>';
+  }
+
+  function renderAssessment() {
+    const listEl = document.getElementById('assessment-list');
+    const cardsEl = document.getElementById('assessment-cards');
+    const noteEl = document.getElementById('assessment-note');
+    const natSel = document.getElementById('assessment-filter-nature');
+    const search = document.getElementById('assessment-search');
+    if (!listEl || !cardsEl) return;
+
+    const all = assessmentRows();
+    const counts = {};
+    all.forEach(r => { counts[r.nature] = (counts[r.nature] || 0) + 1; });
+
+    const tileEl = document.getElementById('tile-assessment');
+    if (tileEl) tileEl.textContent = String(all.length);
+    const tileSub = document.getElementById('tile-assessment-sub');
+    if (tileSub) tileSub.textContent = all.length
+      ? ('过筛再测 ' + (counts['过筛再测'] || 0) + ' · 海测 ' + (counts['海测'] || 0)
+         + ' · 面试后测评 ' + (counts['面试后测评'] || 0) + ' · 未说明 ' + (counts['未说明'] || 0))
+      : 'assessment_nature.csv 暂无数据';
+
+    if (!cardsEl.dataset.built) {
+      cardsEl.dataset.built = '1';
+      cardsEl.innerHTML = NATURE_ORDER.map(k =>
+        '<div class="card nat-card" data-nature="' + esc(k) + '" style="cursor:pointer">'
+        + '<div class="card-top"><div>'
+        + '<div class="card-title">' + esc(k) + '<span class="count-badge">' + (counts[k] || 0) + ' 行</span></div>'
+        + '<div class="card-sub">' + NATURE_META[k].desc + '</div>'
+        + '</div><div class="card-right">点击筛选 →</div></div></div>').join('');
+      cardsEl.querySelectorAll('.nat-card').forEach(c => c.addEventListener('click', () => {
+        const k = c.getAttribute('data-nature');
+        natSel.value = (natSel.value === k) ? '' : k;
+        const st = renderAssessment._state; if (st) st.page = 1;
+        draw();
+      }));
+    }
+    cardsEl.querySelectorAll('.nat-card').forEach(c => {
+      const k = c.getAttribute('data-nature');
+      const b = c.querySelector('.count-badge');
+      if (b) b.textContent = (counts[k] || 0) + ' 行';
+      c.style.borderColor = (natSel && natSel.value === k) ? 'var(--series-1)' : '';
+    });
+
+    if (noteEl) noteEl.innerHTML = '同一句「进入测评」含义可能相反：<b>过筛再测</b>＝先过简历筛选才发测评（初筛已过）；'
+      + '<b>海测</b>＝投递即触发/全员测评（不代表过初筛）；<b>面试后测评</b>＝测评在面试之后。'
+      + '判定只认邀请原文，原文不足记「未说明」。'
+      + '数据源：<code>assessment_nature.csv</code>（性质＋判据原文）＋ <code>application_log.csv</code>（状态/阶段实时）。'
+      + '共 <b>' + all.length + '</b> 行。';
+
+    if (natSel && natSel.options.length <= 1) {
+      NATURE_ORDER.filter(k => counts[k]).forEach(k => {
+        const o = document.createElement('option'); o.value = k; o.textContent = k + '（' + counts[k] + '）';
+        natSel.appendChild(o);
+      });
+    }
+
+    const state = renderAssessment._state || (renderAssessment._state = { page: 1 });
+
+    function draw() {
+      let rows = all.slice();
+      if (natSel && natSel.value) rows = rows.filter(r => r.nature === natSel.value);
+      const q = ((search && search.value) || '').trim().toLowerCase();
+      if (q) rows = rows.filter(r => ((r.company || '') + (r.job_title || '') + (r.basis || '')).toLowerCase().indexOf(q) >= 0);
+      rows.sort((a, b) => (b.__idx || 0) - (a.__idx || 0));
+
+      bookList(listEl, rows, state, {
+        emptyText: '没有匹配的测评记录',
+        prepare: (g) => {
+          g.natures = [...new Set(g.rows.map(r => r.nature))];
+          const ds = g.rows.map(r => r.attempt_date || '').filter(Boolean).sort();
+          g.latest = ds.length ? ds[ds.length - 1] : '';
+        },
+        cardOf: (g) => bookGroupCard(g, {
+          sub: esc(g.rows[0].stage_detail || ''),
+          chips: g.natures.map(natureChip).join(''),
+          right: '最新 ' + esc(g.latest || '—'),
+          rowEl: (r) => {
+            const detail = '<div class="tags">' + natureChip(r.nature)
+              + (r.status ? '<span class="chip">' + esc(r.status) + '</span>' : '')
+              + (r.stage_detail ? '<span class="chip">' + esc(r.stage_detail) + '</span>' : '')
+              + '</div>'
+              + '<dt>判据原文</dt><dd>' + (r.basis ? escMultiline(r.basis) : '（无判据）') + '</dd>'
+              + '<dt>证据来源</dt><dd>' + esc(r.source || '') + '　' + esc(r.updated_at || '') + '</dd>'
+              + (r.outcome_reason ? '<dt>终止原因</dt><dd>' + esc(r.outcome_reason) + '</dd>' : '')
+              + '<dt>台账行号</dt><dd>第 ' + r.__idx + ' 行（可在「已投递」里按公司名找到同一笔）</dd>';
+            return bookPositionRow(esc(r.job_title), esc(r.attempt_date || '—') + ' · 第 ' + r.__idx + ' 行', detail);
+          },
+        }),
+        redraw: () => draw(),
+      });
+    }
+    if (natSel && !natSel.__assessBound) {
+      natSel.__assessBound = true;
+      natSel.addEventListener('change', () => { state.page = 1; draw(); });
+    }
+    if (search && !search.__assessBound) {
+      search.__assessBound = true;
+      search.addEventListener('input', () => { state.page = 1; draw(); });
+    }
+    draw();
+  }
+
   function renderEnded() {
     const listEl = document.getElementById('ended-list');
     const search = document.getElementById('ended-search');
-    let rows = data.jobPool.filter(r => r.status === 'Offer' || r.status === 'Rejected');
+    let rows = data.jobPool.filter(r => ENDED_POOL_STATUS.indexOf((r.status || '').trim()) >= 0);
+
+    const endedPages = { page: 1 };
+
+    // 终态细分：原来看不出 Rejected / Terminated / Blocked 的区别，全写成「已挂」
+    function resultChipFor(st) {
+      return st === 'Offer'
+        ? '<span class="chip chip-good">🟢 Offer</span>'
+        : (st === 'Terminated' ? '<span class="chip chip-critical">流程终止</span>'
+          : (st === 'Blocked' ? '<span class="chip chip-bad">被拦/未提交</span>'
+            : '<span class="chip chip-critical">已挂</span>'));
+    }
+
+    // 一行已结束记录 → .position-row
+    function endedPosEl(r) {
+      const cat = category(r);
+      const st = (r.status || '').trim();
+      const jd = jdFor(r.company);
+      const detail =
+        '<div class="tags">'
+        + '<span class="chip ' + catChipClass(cat) + '">' + esc(cat) + '</span>'
+        + resultChipFor(st)
+        + '</div>'
+        + '<dt>岗位描述（JD）</dt><dd>' + (jd ? escMultiline(jd) : '暂未记录') + '</dd>'
+        + '<dt>备注</dt><dd>' + esc(r.notes) + '</dd>';
+      return bookPositionRow(esc(r.job_title), esc(submittedDateFor(r)), detail);
+    }
 
     function draw() {
       let filtered = rows.slice();
@@ -1060,35 +2752,116 @@
         const q = search.value.trim().toLowerCase();
         filtered = filtered.filter(r => (r.company||'').toLowerCase().includes(q));
       }
-      filtered.sort((a,b) => (b.status === 'Offer' ? -1 : 1) - (a.status === 'Offer' ? -1 : 1));
 
-      listEl.innerHTML = '';
-      if (!filtered.length) { listEl.innerHTML = '<div class="empty">暂无已结束的投递</div>'; return; }
-      filtered.forEach(r => {
-        const cat = category(r);
-        const resultChip = r.status === 'Offer'
-          ? '<span class="chip chip-good">🟢 Offer</span>'
-          : '<span class="chip chip-critical">已挂</span>';
-        const jd = jdFor(r.company);
-        const html = `
-          <div class="card-top">
-            <div>
-              <div class="card-title">${esc(r.company)} · ${esc(r.job_title)}</div>
-              <div class="tags">
-                <span class="chip ${catChipClass(cat)}">${esc(cat)}</span>
-                ${resultChip}
-              </div>
-            </div>
-            <div class="card-right">${esc(submittedDateFor(r))}</div>
-          </div>
-          <div class="detail">
-            <dt>岗位描述（JD）</dt><dd>${jd ? escMultiline(jd) : '暂未记录'}</dd>
-            <dt>备注</dt><dd>${esc(r.notes)}</dd>
-          </div>`;
-        listEl.appendChild(cardEl(html));
+      bookList(listEl, filtered, endedPages, {
+        emptyText: '暂无已终止的投递',
+        prepare: (g) => {
+          // 原排序语义保留：组内 Offer 排最前，其余按投递日倒序
+          g.rows.sort((a, b) => (submittedDateFor(b) || '').localeCompare(submittedDateFor(a) || '')
+            || ((b.status === 'Offer' ? -1 : 1) - (a.status === 'Offer' ? -1 : 1)));
+          g.hasOffer = g.rows.some(r => (r.status || '').trim() === 'Offer');
+          g.latest = submittedDateFor(g.rows[0]) || '';
+          g.cats = [...new Set(g.rows.map(category))];
+          g.results = [...new Set(g.rows.map(r => (r.status || '').trim()).filter(Boolean))];
+        },
+        sortGroups: (gl) => gl.sort((a, b) => (Number(b.hasOffer) - Number(a.hasOffer))
+          || (b.latest || '').localeCompare(a.latest || '')),
+        cardOf: (g) => bookGroupCard(g, {
+          sub: g.variants.size > 1
+            ? esc('合并 ' + g.variants.size + ' 种记录写法')
+            : esc(currentStage(g.rows[0])),
+          chips: g.cats.map(c => '<span class="chip ' + catChipClass(c) + '">' + esc(c) + '</span>').join('')
+            + g.results.map(resultChipFor).join(''),
+          right: '最新 ' + esc(g.latest || '—'),
+          rowEl: endedPosEl,
+        }),
+        redraw: () => draw(),
       });
     }
+    search.oninput = () => { endedPages.page = 1; draw(); };
+    bookBindKeys('ended-view', '__endedBookKeysBound');
+    draw();
+  }
+
+  // ---------- excluded view（2026-10-05 新增）----------
+  // 背景：审计 F 段抓出 Skipped(65) + NotFit(9) 两类在此前**没有任何出口** ——
+  // 首页磁贴只覆盖「在途 / 已投 / 未投 / 已结束」，池内总行数凑不齐 ⇒ 会误判"还有一堆没投"。
+  // 此屏为**可追溯**而留：每条都带排除原因（skip_reason / current_stage），想复议就把 status 改回 ToApply。
+  function renderExcluded() {
+    const listEl = document.getElementById('excluded-list');
+    const sameEl = document.getElementById('excluded-sameco-list');
+    const sameSection = document.getElementById('excluded-sameco-section');
+    const sameMeta = document.getElementById('excluded-sameco-meta');
+    const realMeta = document.getElementById('excluded-real-meta');
+    const search = document.getElementById('excluded-search');
+    const stSel = document.getElementById('excluded-filter-status');
+    const all = data.jobPool.filter(r => EXCLUDED_POOL_STATUS.indexOf((r.status || '').trim()) >= 0);
+    // 2026-10-10 用户口径：同公司已有投递（别的岗位）的行不计入排除名单，另列下方分区
+    const rows = all.filter(r => !isSameCompanyExcluded(r));
+    const sameCo = all.filter(isSameCompanyExcluded);
+
+    function cardFor(r) {
+      const st = (r.status || '').trim();
+      const cat = category(r);
+      const chip = isSameCompanyExcluded(r)
+        ? '<span class="chip chip-good">同司已投 · 不计入排除</span>'
+        : (st === 'NotFit'
+          ? '<span class="chip chip-critical">不符合口径</span>'
+          : '<span class="chip">主动跳过</span>');
+      const why = (r.skip_reason || '').trim() || (r.current_stage || '').trim() || '（未记录原因）';
+      const html = `
+        <div class="card-top">
+          <div>
+            <div class="card-title">${esc(r.company)} · ${esc(r.job_title)}</div>
+            <div class="tags">
+              <span class="chip ${catChipClass(cat)}">${esc(cat)}</span>
+              ${chip}
+              ${r.location ? '<span class="chip">' + esc(r.location) + '</span>' : ''}
+            </div>
+          </div>
+          <div class="card-right">${esc(r.date_found || '')}</div>
+        </div>
+        <div class="detail">
+          <dt>${isSameCompanyExcluded(r) ? '状态说明' : '排除原因'}</dt><dd>${escMultiline(why)}</dd>
+          ${r.notes ? '<dt>备注</dt><dd>' + escMultiline(r.notes) + '</dd>' : ''}
+        </div>`;
+      return cardEl(html);
+    }
+
+    function draw() {
+      const q = (search.value || '').trim().toLowerCase();
+      const matchQ = (r) => !q
+        || (r.company || '').toLowerCase().includes(q) || (r.job_title || '').toLowerCase().includes(q);
+
+      let filtered = rows.filter(matchQ);
+      if (stSel && stSel.value) filtered = filtered.filter(r => (r.status || '').trim() === stSel.value);
+      filtered.sort((a, b) => (a.status || '').localeCompare(b.status || '')
+        || (a.company || '').localeCompare(b.company || ''));
+
+      listEl.innerHTML = '';
+      if (!filtered.length) {
+        listEl.innerHTML = '<div class="empty">没有符合条件的已排除记录</div>';
+      } else {
+        filtered.forEach(r => listEl.appendChild(cardFor(r)));
+      }
+      if (realMeta) realMeta.textContent = '计入排除名单：' + rows.length + ' 行（当前显示 ' + filtered.length + '）';
+
+      let scFiltered = sameCo.filter(matchQ);
+      scFiltered.sort((a, b) => (a.company || '').localeCompare(b.company || ''));
+      if (sameSection) sameSection.style.display = sameCo.length ? '' : 'none';
+      if (sameEl) {
+        sameEl.innerHTML = '';
+        scFiltered.forEach(r => sameEl.appendChild(cardFor(r)));
+        if (!scFiltered.length) sameEl.innerHTML = '<div class="empty">没有符合条件的记录</div>';
+      }
+      if (sameMeta) {
+        sameMeta.textContent = sameCo.length
+          ? (sameCo.length + ' 行（当前显示 ' + scFiltered.length + '）—— 公司已有投递，不计入排除名单')
+          : '';
+      }
+    }
     search.oninput = draw;
+    if (stSel) stSel.onchange = draw;
     draw();
   }
 
@@ -1274,13 +3047,34 @@
   });
 
   // ---------- navigation ----------
+  const VIEWS = ['home', 'applied', 'pending', 'ended', 'excluded', 'inflight', 'mail', 'assessment'];
   function showView(name) {
-    ['home','applied','pending','ended'].forEach(v => {
+    // 防御：未知/缺失的视图名一律回首页。
+    // 否则下面这轮 toggle 会把【所有】view 都加上 hidden，整页只剩页头（2026-10-02 闪退 BUG）。
+    if (!VIEWS.includes(name)) name = 'home';
+    VIEWS.forEach(v => {
       document.getElementById(v + '-view').classList.toggle('hidden', v !== name);
     });
+    if (name === 'assessment') renderAssessment();   // 测评看板：进视图时才渲染
   }
-  document.querySelectorAll('.tile').forEach(t => t.addEventListener('click', () => showView(t.dataset.view)));
+  // 只给真正带 data-view 的磁贴绑导航 —— 「台账总记录」等纯统计磁贴没有 data-view，
+  // 早先这里用 '.tile' 通配，点到它们就 showView(undefined) → 闪退。
+  document.querySelectorAll('.tile[data-view]').forEach(t => t.addEventListener('click', () => showView(t.dataset.view)));
+  // 首页里非磁贴的入口（如「查看全部 →」按钮）也走同一套 data-view
+  document.querySelectorAll('[data-view]:not(.tile)').forEach(b => b.addEventListener('click', () => showView(b.dataset.view)));
   document.querySelectorAll('[data-back]').forEach(b => b.addEventListener('click', () => showView('home')));
+
+  // 各视图的筛选控件（输入即重渲）
+  ['inflight-filter-status','inflight-filter-fresh','inflight-search'].forEach(id => {
+    const el = document.getElementById(id);
+    if (el) el.addEventListener(el.tagName === 'SELECT' ? 'change' : 'input', renderInflight);
+  });
+  ['mail-filter-tag','mail-search'].forEach(id => {
+    const el = document.getElementById(id);
+    if (el) el.addEventListener(el.tagName === 'SELECT' ? 'change' : 'input', renderMail);
+  });
+  const copyBtn = document.getElementById('inflight-copy');
+  if (copyBtn) copyBtn.addEventListener('click', copyInflightList);
 
   // ---------- load / refresh ----------
   const refreshBtn = document.getElementById('refresh-btn');

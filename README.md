@@ -14,6 +14,8 @@ references/
   setup-workflow.md             Step-by-step onboarding the agent should follow
   application-playbook.md       Browser/ATS handling playbook (forms, uploads, CAPTCHA, etc.)
   safety-and-boundaries.md      Privacy, consent, and what should never be automated
+  workflow-and-standards.md     🇨🇳 实战版：8 步工作流 + 16 条投递原则 + ATS 血泪笔记 + 反面清单
+  resume-writing-spec.md        🇨🇳 实战版：简历内容模型、5 条铁律、命名规范、质量门禁、自检清单
 templates/
   candidate_profile.template.json    Your facts: identity, contact, work authorization, targets
   application_rules.template.md      What to prioritize, consider, skip, or hand off to you

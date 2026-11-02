@@ -28,7 +28,12 @@ POSITION_LEVEL_STATUS = {'Submitted', 'Assessment', 'Interview', 'Offer', 'Appli
 # 全部「占用」状态（= TAKEN，兼容旧行为）
 TAKEN = COMPANY_LEVEL_STATUS | POSITION_LEVEL_STATUS
 # 非占用但需人工判断
-NEEDS_REVIEW_STATUS = {'NeedsUser', 'ToApply'}
+# 🔴 `Pending` 必须在这里：它是「**申请已备好、但可能尚未真正发出**」的状态
+#    （邮箱投递渠道：Agent 不能发邮件 ⇒ 先记 Pending，用户发出后才转 Submitted）。
+#    此前 Pending 不在任何状态组里 ⇒ 落穿所有分支，判定理由退化成「台账无记录 —— 可以开投」，
+#    会让后续会话把同一岗位**再投一次**（与 2026-09 帆软那次「查了 A 却漏了 A 的别名」同类事故）。
+#    它**不该阻断**（邮件可能真的没发出去），但**必须可见**。
+NEEDS_REVIEW_STATUS = {'NeedsUser', 'ToApply', 'Pending'}
 
 
 # ── 归一化 ──────────────────────────────────────────────────────────────
@@ -529,15 +534,30 @@ def verdict(query, job_title=None):
         remaining = quota.get('remaining')
         if remaining is None and quota.get('limit') is not None:
             remaining = quota['limit'] - quota.get('used', 0)
-        out['reason'] = '台账无记录；站点额度 %s/%s%s' % (
-            quota.get('used'), quota.get('limit'),
+        # ⚠️ 本分支排在下面的 review 分支之前 ⇒ 若不打补丁，只要站点有额度记录，
+        #    Pending / NeedsUser / Backup 这类**非占用但已存在的记录会被从判定理由里整个丢掉**，
+        #    理由退化成「台账无记录」，可能诱导后续会话把同一岗位再投一次。
+        head = ('台账无记录' if not review
+                else '台账无「占用」记录（这才是去重依据），但有 %d 条**非占用**记录：%s'
+                     '—— 不算重复投递，但请先确认那笔的真实状态（例如 Pending 可能是「已备好但尚未发出」）'
+                     % (len(review), '/'.join(sorted({h['status'] for h in review}))))
+        out['reason'] = '%s；站点额度 %s/%s%s' % (
+            head, quota.get('used'), quota.get('limit'),
             ('，剩 %s' % remaining) if remaining is not None else '')
+        if review:
+            out['review_hits'] = review
         return out
 
     if quota and quota.get('status') == 'mind_limit':
         out['level'] = 'clear'
         out['needs_quota_verify'] = True
-        out['reason'] = '台账无记录；⚠️ 该站额度未登记（历史已投 %s 笔），开填前须站内核对剩余志愿数' % quota.get('used')
+        head = ('台账无记录' if not review
+                else '台账无「占用」记录，但有 %d 条**非占用**记录：%s'
+                     % (len(review), '/'.join(sorted({h['status'] for h in review}))))
+        out['reason'] = ('%s；⚠️ 该站额度未登记（历史已投 %s 笔），开填前须站内核对剩余志愿数'
+                         % (head, quota.get('used')))
+        if review:
+            out['review_hits'] = review
         return out
 
     if review:

@@ -42,6 +42,7 @@ dashboard/*
 !dashboard/check_dupe.py
 !dashboard/followup_check.py
 !dashboard/_jobhunt_common.py
+!dashboard/_dedupe_check.py
 
 # 3) 额度表 / 别名表（含运行期备注，实测夹带手机号与邮箱）
 dashboard/site_quotas.json
@@ -67,4 +68,53 @@ __pycache__/
 # 6) Word 文档（面试备战稿/薪资谈判稿等，二进制无法被文本扫描覆盖，一律不提交）
 *.docx
 *.doc
+
+# ============================================================
+# 🔴 仓库为 PUBLIC —— 2026-11-02 二次隐私扫描补漏
+# 实测：`git status -uall` 有 222 个未跟踪文件，其中
+#   · 约 200 个根目录 `_*.py` 一次性脚本 —— 写死了真实姓名 / 手机 / 邮箱 / 身份证号
+#   · 2 个 `candidate_profile_bak_*.json` —— 完整个人档案（含身份证与父母手机）
+#   · 合计 238 处个人信息
+# 原有规则 `candidate_profile.json.*` **匹配不到** `candidate_profile_bak_20261008.json` 这种变体。
+# ============================================================
+
+# 7) 会话一次性脚本：根目录 `_开头的 .py` 一律排除（含真实个人信息）
+#    通用工具有净化版本，统一放在 scripts/ 下
+/_*.py
+
+# 8) 个人档案：覆盖任意前后缀/备份变体（原规则只精确匹配 candidate_profile.json）
+candidate_profile*.json
+!templates/candidate_profile.template.json
+
+# 9) 临时探测产物 JSON / CSV
+/_url_*.json
+/*.csv
+
+# 10) 图片 / 扫描件 / 简历 PDF / 证书 / 证明材料 —— 二进制无法被文本扫描，一律不提交
+#     含：证件照、青柚杯等获奖证书、成绩单、四六级成绩单、实习证明、压缩包
+*.jpg
+*.jpeg
+*.png
+*.gif
+*.webp
+*.bmp
+*.tif
+*.tiff
+*.pdf
+*.zip
+*.rar
+*.7z
+*.xlsx
+*.xls
+*.pptx
+*.ppt
+
+# 11) 浏览器自动化产物与备份快照
+.probe/
+.playwright-cli/
+_bak_*
+*_bak_*
+*.bak_*
+todos_bak_*.json
+
 
